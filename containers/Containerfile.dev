@@ -1,0 +1,26 @@
+# Containerfile for local development environment
+FROM ghcr.io/cirruslabs/flutter:3.24.3
+
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    clang \
+    cmake \
+    ninja-build \
+    pkg-config \
+    ffmpeg \
+    curl \
+    git \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust toolchain
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+
+WORKDIR /workspace
+CMD ["bash"]

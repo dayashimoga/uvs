@@ -1,0 +1,11 @@
+1
+00:00:00,500 --> 00:00:02,000
+Universal Video Studio - Production Ready
+
+2
+00:00:02,200 --> 00:00:04,500
+Multi-track NLE and High-performance Player
+
+3
+00:00:04,600 --> 00:00:05,000
+End of Test Clip

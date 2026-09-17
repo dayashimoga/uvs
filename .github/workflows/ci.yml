@@ -1,0 +1,83 @@
+name: CI Quality Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-core:
+    name: Rust Core Validation & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core/rust
+
+      - name: Check Formatting
+        run: cd core/rust && cargo fmt --check
+
+      - name: Clippy Linter
+        run: cd core/rust && cargo clippy -- -D warnings
+
+      - name: Run Tests
+        run: cd core/rust && cargo test --all-targets --verbose
+
+  flutter-app:
+    name: Flutter UI & Adaptive Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: cd apps/flutter_app && flutter pub get
+
+      - name: Analyze Flutter Code
+        run: cd apps/flutter_app && flutter analyze
+
+      - name: Run Widget & Adaptive Tests with Coverage
+        run: cd apps/flutter_app && flutter test --coverage
+
+      - name: Verify Coverage Threshold (>90%)
+        run: |
+          bash ./scripts/coverage.sh
+
+  e2e-media:
+    name: FFmpeg E2E Transcoding & Performance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run E2E Media Tests
+        run: python3 tests/e2e_media_tests.py
+
+      - name: Run Performance Benchmarks
+        run: python3 tests/benchmarks.py

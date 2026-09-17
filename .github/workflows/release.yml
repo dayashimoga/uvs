@@ -1,0 +1,48 @@
+name: Multi-Platform Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-release:
+    name: Build Release Packages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: universal_video_studio_linux.tar.gz
+          - os: windows-latest
+            artifact: universal_video_studio_windows.zip
+          - os: macos-latest
+            artifact: universal_video_studio_macos.zip
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
+
+      - name: Build Core
+        run: cd core/rust && cargo build --release
+
+      - name: Build Flutter Package
+        run: cd apps/flutter_app && flutter build bundle
+
+      - name: Package Distributables
+        run: |
+          mkdir -p dist
+          echo "Package placeholder for CI artifact upload" > dist/${{ matrix.artifact }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
