@@ -163,16 +163,17 @@ void main() {
       s.addMarker(1.5, 'Sync Beat', '#FF0055', 'Drum transient');
       expect((s.project['timeline']['markers'] as List).length, 1);
 
-      final tempSave = '${Directory.systemTemp.path}/uvs_ps_${DateTime.now().millisecondsSinceEpoch}.uvsp';
+      final tempDir = Directory.systemTemp.createTempSync('uvs_ps_test_');
+      final tempSave = '${tempDir.path}/uvs_ps_${DateTime.now().millisecondsSinceEpoch}.uvsp';
       expect(s.saveProject(tempSave), isTrue);
       expect(s.loadProject(tempSave), isTrue);
       expect(s.currentFilePath, tempSave);
       expect(s.isDirty, isFalse);
 
-      expect(s.relinkAssets(Directory.systemTemp.path), greaterThanOrEqualTo(0));
+      expect(s.relinkAssets(tempDir.path), greaterThanOrEqualTo(0));
 
       // Cleanup
-      File(tempSave).deleteSync();
+      tempDir.deleteSync(recursive: true);
     });
   });
 

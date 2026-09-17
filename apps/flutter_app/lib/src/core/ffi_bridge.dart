@@ -219,7 +219,16 @@ class UvsFfiBridge {
       return {'relinked_count': 0, 'project': project};
     }
 
-    final dirFiles = search.listSync(recursive: true).whereType<File>().toList();
+    List<File> dirFiles = [];
+    try {
+      dirFiles = search.listSync(recursive: true, followLinks: false).whereType<File>().toList();
+    } catch (_) {
+      try {
+        dirFiles = search.listSync(recursive: false, followLinks: false).whereType<File>().toList();
+      } catch (_) {
+        dirFiles = [];
+      }
+    }
     for (final asset in assets) {
       if (asset is Map<String, dynamic>) {
         final currentPath = asset['path'] as String? ?? '';
