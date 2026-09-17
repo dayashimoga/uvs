@@ -66,7 +66,11 @@ impl MulticamGroup {
         }
 
         // Find or create primary video track
-        let v_track_id = match timeline.tracks.iter().find(|t| t.track_type == TrackType::Video) {
+        let v_track_id = match timeline
+            .tracks
+            .iter()
+            .find(|t| t.track_type == TrackType::Video)
+        {
             Some(t) => t.id.clone(),
             None => {
                 let t = Track::new("V1", TrackType::Video, 0);
@@ -77,7 +81,11 @@ impl MulticamGroup {
         };
 
         // Find or create primary audio track
-        let a_track_id = match timeline.tracks.iter().find(|t| t.track_type == TrackType::Audio) {
+        let a_track_id = match timeline
+            .tracks
+            .iter()
+            .find(|t| t.track_type == TrackType::Audio)
+        {
             Some(t) => t.id.clone(),
             None => {
                 let t = Track::new("A1", TrackType::Audio, 0);
@@ -88,7 +96,7 @@ impl MulticamGroup {
         };
 
         let mut cuts_sorted = cut_events.to_vec();
-        cuts_sorted.sort_by(|a, b| a.0.cmp(&b.0));
+        cuts_sorted.sort_by_key(|a| a.0);
 
         let mut inserted_count = 0;
 
@@ -116,11 +124,21 @@ impl MulticamGroup {
             let source_in = start + angle.sync_offset;
             let source_out = source_in + duration;
 
-            let mut v_clip = Clip::new(format!("{} (Cut {})", angle.name, i + 1), &angle.media_path, start, duration);
+            let mut v_clip = Clip::new(
+                format!("{} (Cut {})", angle.name, i + 1),
+                &angle.media_path,
+                start,
+                duration,
+            );
             v_clip.in_point = source_in;
             v_clip.out_point = source_out;
 
-            let mut a_clip = Clip::new(format!("{} Audio", angle.name), &angle.media_path, start, duration);
+            let mut a_clip = Clip::new(
+                format!("{} Audio", angle.name),
+                &angle.media_path,
+                start,
+                duration,
+            );
             a_clip.in_point = source_in;
             a_clip.out_point = source_out;
 
@@ -199,7 +217,11 @@ mod tests {
 
         let (lag, corr) = find_audio_sync_lag(&sig_ref, &sig_target, 4);
         assert_eq!(lag, 2);
-        assert!(corr > 0.95, "Correlation should be close to 1.0, got {}", corr);
+        assert!(
+            corr > 0.95,
+            "Correlation should be close to 1.0, got {}",
+            corr
+        );
     }
 
     #[test]
@@ -227,10 +249,16 @@ mod tests {
             (RationalTime::from_f64(10.0), "cam1".into()),
         ];
 
-        let inserted = group.commit_angle_cuts_to_timeline(&cuts, &mut timeline).unwrap();
+        let inserted = group
+            .commit_angle_cuts_to_timeline(&cuts, &mut timeline)
+            .unwrap();
         assert_eq!(inserted, 3);
 
-        let v_track = timeline.tracks.iter().find(|t| t.track_type == TrackType::Video).unwrap();
+        let v_track = timeline
+            .tracks
+            .iter()
+            .find(|t| t.track_type == TrackType::Video)
+            .unwrap();
         assert_eq!(v_track.clips.len(), 3);
         assert_eq!(v_track.clips[0].name, "Cam 1 Wide (Cut 1)");
         assert_eq!(v_track.clips[1].name, "Cam 2 Close (Cut 2)");

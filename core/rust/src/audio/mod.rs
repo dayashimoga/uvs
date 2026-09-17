@@ -17,7 +17,11 @@ impl AudioBuffer {
     }
 
     pub fn frames(&self) -> usize {
-        if self.samples.is_empty() { 0 } else { self.samples[0].len() }
+        if self.samples.is_empty() {
+            0
+        } else {
+            self.samples[0].len()
+        }
     }
 
     pub fn apply_gain(&mut self, gain_linear: f32) {
@@ -50,10 +54,15 @@ impl AudioBuffer {
 /// Biquad filter implementation (Robert Bristow-Johnson Audio EQ Cookbook)
 #[derive(Debug, Clone)]
 pub struct BiquadFilter {
-    b0: f32, b1: f32, b2: f32,
-    a1: f32, a2: f32,
-    x1: f32, x2: f32,
-    y1: f32, y2: f32,
+    b0: f32,
+    b1: f32,
+    b2: f32,
+    a1: f32,
+    a2: f32,
+    x1: f32,
+    x2: f32,
+    y1: f32,
+    y2: f32,
 }
 
 impl BiquadFilter {
@@ -76,8 +85,10 @@ impl BiquadFilter {
             b2: b2 / a0,
             a1: a1 / a0,
             a2: a2 / a0,
-            x1: 0.0, x2: 0.0,
-            y1: 0.0, y2: 0.0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
         }
     }
 
@@ -101,8 +112,10 @@ impl BiquadFilter {
             b2: b2 / a0,
             a1: a1 / a0,
             a2: a2 / a0,
-            x1: 0.0, x2: 0.0,
-            y1: 0.0, y2: 0.0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
         }
     }
 
@@ -126,13 +139,17 @@ impl BiquadFilter {
             b2: b2 / a0,
             a1: a1 / a0,
             a2: a2 / a0,
-            x1: 0.0, x2: 0.0,
-            y1: 0.0, y2: 0.0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
         }
     }
 
     pub fn process_sample(&mut self, x: f32) -> f32 {
-        let y = self.b0 * x + self.b1 * self.x1 + self.b2 * self.x2 - self.a1 * self.y1 - self.a2 * self.y2;
+        let y = self.b0 * x + self.b1 * self.x1 + self.b2 * self.x2
+            - self.a1 * self.y1
+            - self.a2 * self.y2;
         self.x2 = self.x1;
         self.x1 = x;
         self.y2 = self.y1;
@@ -144,11 +161,11 @@ impl BiquadFilter {
 /// 5-band Parametric Equalizer configuration
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct EqualizerConfig {
-    pub low_shelf_gain: f32,   // 100 Hz
-    pub low_mid_gain: f32,     // 500 Hz
-    pub mid_gain: f32,         // 1.5 kHz
-    pub high_mid_gain: f32,    // 4 kHz
-    pub high_shelf_gain: f32,  // 10 kHz
+    pub low_shelf_gain: f32,  // 100 Hz
+    pub low_mid_gain: f32,    // 500 Hz
+    pub mid_gain: f32,        // 1.5 kHz
+    pub high_mid_gain: f32,   // 4 kHz
+    pub high_shelf_gain: f32, // 10 kHz
 }
 
 impl Default for EqualizerConfig {
@@ -181,7 +198,9 @@ impl Equalizer {
             ];
             ch_filters.push(bands);
         }
-        Self { filters: ch_filters }
+        Self {
+            filters: ch_filters,
+        }
     }
 
     pub fn process(&mut self, buffer: &mut AudioBuffer) {
@@ -258,9 +277,11 @@ impl Compressor {
 
             // Envelope follower
             if peak > self.envelope {
-                self.envelope = self.attack_coeff * self.envelope + (1.0 - self.attack_coeff) * peak;
+                self.envelope =
+                    self.attack_coeff * self.envelope + (1.0 - self.attack_coeff) * peak;
             } else {
-                self.envelope = self.release_coeff * self.envelope + (1.0 - self.release_coeff) * peak;
+                self.envelope =
+                    self.release_coeff * self.envelope + (1.0 - self.release_coeff) * peak;
             }
 
             // Compute gain reduction

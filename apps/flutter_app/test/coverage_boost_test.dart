@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:universal_video_studio/src/core/ffi_bridge.dart';
-import 'package:universal_video_studio/src/core/theme.dart';
 import 'package:universal_video_studio/src/models/project_model.dart';
 import 'package:universal_video_studio/src/models/render_job_model.dart';
 import 'package:universal_video_studio/src/services/project_service.dart';

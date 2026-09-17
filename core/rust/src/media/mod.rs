@@ -104,7 +104,9 @@ impl FrameCache {
         let mut lock = self.cache.lock();
 
         // Evict until within budget
-        while self.current_bytes.load(Ordering::Relaxed) + frame_size > self.max_bytes && !lock.is_empty() {
+        while self.current_bytes.load(Ordering::Relaxed) + frame_size > self.max_bytes
+            && !lock.is_empty()
+        {
             if let Some((_, popped)) = lock.pop_lru() {
                 let popped_size = popped.size_in_bytes();
                 self.current_bytes.fetch_sub(popped_size, Ordering::SeqCst);
@@ -215,12 +217,10 @@ impl ProxyManager {
     /// If the proxy is missing, corrupted, or proxies are disabled, safely falls back to original_path.
     pub fn get_effective_path(&self, original_path: &str) -> String {
         let enabled = *self.use_proxies.lock();
-        if enabled {
-            if self.check_proxy_status(original_path) == ProxyStatus::Valid {
-                let lock = self.proxy_map.lock();
-                if let Some(proxy) = lock.get(original_path) {
-                    return proxy.clone();
-                }
+        if enabled && self.check_proxy_status(original_path) == ProxyStatus::Valid {
+            let lock = self.proxy_map.lock();
+            if let Some(proxy) = lock.get(original_path) {
+                return proxy.clone();
             }
         }
         original_path.to_string()
@@ -272,7 +272,10 @@ mod tests {
         let corrupt_str = corrupt_file.to_string_lossy().to_string();
 
         // 1. Unregistered status
-        assert_eq!(mgr.check_proxy_status(&orig_str), ProxyStatus::NotRegistered);
+        assert_eq!(
+            mgr.check_proxy_status(&orig_str),
+            ProxyStatus::NotRegistered
+        );
         assert_eq!(mgr.get_effective_path(&orig_str), orig_str);
 
         // 2. Valid proxy registered
@@ -286,7 +289,10 @@ mod tests {
         // 4. Corrupt proxy registered -> automatically falls back to original!
         let corrupt_orig = "test_corrupt_orig.mp4".to_string();
         mgr.register_proxy(corrupt_orig.clone(), corrupt_str.clone());
-        assert_eq!(mgr.check_proxy_status(&corrupt_orig), ProxyStatus::Corrupted);
+        assert_eq!(
+            mgr.check_proxy_status(&corrupt_orig),
+            ProxyStatus::Corrupted
+        );
         assert_eq!(mgr.get_effective_path(&corrupt_orig), corrupt_orig);
 
         // 5. Deleted proxy -> automatically falls back to original!
@@ -299,4 +305,3 @@ mod tests {
         let _ = std::fs::remove_file(&corrupt_file);
     }
 }
-

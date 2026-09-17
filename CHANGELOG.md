@@ -96,5 +96,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Replaced all placeholder packaging in `.github/workflows/release.yml` with real multi-platform builds and checksum generation.
 * **Clean-Room Acceptance & Traceability**:
   - Embedded complete Requirement -> Implementation -> Test -> Evidence Traceability Matrix in `tests/acceptance_runner.py`.
-  - Updated `acceptance.json` and `acceptance.html` with clean-room certification, dynamic test counts (27 Rust, 28 Flutter, 7 E2E, 4 benchmarks), coverage (>90% separately reported), and release artifact hashes.
+  - Updated `acceptance.json` and `acceptance.html` with clean-room certification, dynamic test counts (27 Rust, 31 Flutter, 7 E2E, 4 benchmarks), coverage (>90% separately reported), and release artifact hashes.
+* **CI Linter, Formatting & Test Hardening**:
+  - Resolved all Rust code formatting differences with rustfmt.
+  - Eliminated all 75 clippy warnings under `-D warnings` with 0 warnings remaining.
+  - Resolved all 19 Flutter analyzer issues, deprecated ColorScheme members, and unused fields/imports.
+  - Hardened `scripts/coverage.sh`, `tests/analyze_coverage.py`, and `ci.yml` for multi-platform GitHub Actions runner execution.
 

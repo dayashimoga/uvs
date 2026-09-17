@@ -11,25 +11,53 @@ pub struct TimecodeConfig {
 
 impl TimecodeConfig {
     pub fn fps_24() -> Self {
-        Self { num: 24, den: 1, drop_frame: false }
+        Self {
+            num: 24,
+            den: 1,
+            drop_frame: false,
+        }
     }
     pub fn fps_23_976() -> Self {
-        Self { num: 24000, den: 1001, drop_frame: false }
+        Self {
+            num: 24000,
+            den: 1001,
+            drop_frame: false,
+        }
     }
     pub fn fps_25() -> Self {
-        Self { num: 25, den: 1, drop_frame: false }
+        Self {
+            num: 25,
+            den: 1,
+            drop_frame: false,
+        }
     }
     pub fn fps_30() -> Self {
-        Self { num: 30, den: 1, drop_frame: false }
+        Self {
+            num: 30,
+            den: 1,
+            drop_frame: false,
+        }
     }
     pub fn fps_29_97() -> Self {
-        Self { num: 30000, den: 1001, drop_frame: true }
+        Self {
+            num: 30000,
+            den: 1001,
+            drop_frame: true,
+        }
     }
     pub fn fps_60() -> Self {
-        Self { num: 60, den: 1, drop_frame: false }
+        Self {
+            num: 60,
+            den: 1,
+            drop_frame: false,
+        }
     }
     pub fn fps_59_94() -> Self {
-        Self { num: 60000, den: 1001, drop_frame: true }
+        Self {
+            num: 60000,
+            den: 1001,
+            drop_frame: true,
+        }
     }
 
     pub fn as_rational(&self) -> Rational64 {
@@ -55,17 +83,23 @@ pub struct RationalTime {
 
 impl RationalTime {
     pub fn zero() -> Self {
-        Self { seconds: Rational64::new(0, 1) }
+        Self {
+            seconds: Rational64::new(0, 1),
+        }
     }
 
     pub fn from_seconds(num: i64, den: i64) -> Self {
-        Self { seconds: Rational64::new(num, den) }
+        Self {
+            seconds: Rational64::new(num, den),
+        }
     }
 
     pub fn from_f64(sec: f64) -> Self {
         let den = 10_000_000i64;
         let num = (sec * den as f64).round() as i64;
-        Self { seconds: Rational64::new(num, den) }
+        Self {
+            seconds: Rational64::new(num, den),
+        }
     }
 
     pub fn as_f64(&self) -> f64 {
@@ -95,7 +129,7 @@ impl RationalTime {
             // SMPTE drop frame calculation for 29.97fps:
             // Drop 2 frames at the start of every minute, except minutes 00, 10, 20, 30, 40, 50.
             let frames_per_10m = 17982i64; // 10 * 60 * 30 - 18
-            let frames_per_min = 1798i64;  // 60 * 30 - 2
+            let frames_per_min = 1798i64; // 60 * 30 - 2
 
             let d = total_frames / frames_per_10m;
             let m = total_frames % frames_per_10m;
@@ -129,22 +163,30 @@ impl RationalTime {
 
     pub fn parse_timecode(tc: &str, config: TimecodeConfig) -> Result<Self, String> {
         let is_df = tc.contains(';');
-        let parts: Vec<&str> = tc.split(|c| c == ':' || c == ';').collect();
+        let parts: Vec<&str> = tc.split([':', ';']).collect();
         if parts.len() != 4 {
-            return Err(format!("Invalid timecode format: '{}', expected HH:MM:SS:FF", tc));
+            return Err(format!(
+                "Invalid timecode format: '{}', expected HH:MM:SS:FF",
+                tc
+            ));
         }
 
-        let hours: i64 = parts[0].parse().map_err(|e| format!("Invalid hours: {}", e))?;
-        let minutes: i64 = parts[1].parse().map_err(|e| format!("Invalid minutes: {}", e))?;
-        let seconds: i64 = parts[2].parse().map_err(|e| format!("Invalid seconds: {}", e))?;
-        let frames: i64 = parts[3].parse().map_err(|e| format!("Invalid frames: {}", e))?;
+        let hours: i64 = parts[0]
+            .parse()
+            .map_err(|e| format!("Invalid hours: {}", e))?;
+        let minutes: i64 = parts[1]
+            .parse()
+            .map_err(|e| format!("Invalid minutes: {}", e))?;
+        let seconds: i64 = parts[2]
+            .parse()
+            .map_err(|e| format!("Invalid seconds: {}", e))?;
+        let frames: i64 = parts[3]
+            .parse()
+            .map_err(|e| format!("Invalid frames: {}", e))?;
 
         if is_df || config.drop_frame {
             let total_minutes = hours * 60 + minutes;
-            let total_frames = hours * 108000
-                + minutes * 1800
-                + seconds * 30
-                + frames
+            let total_frames = hours * 108000 + minutes * 1800 + seconds * 30 + frames
                 - 2 * (total_minutes - total_minutes / 10);
             Ok(Self::from_frames(total_frames, config))
         } else {
@@ -158,14 +200,18 @@ impl RationalTime {
 impl std::ops::Add for RationalTime {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
-        Self { seconds: self.seconds + rhs.seconds }
+        Self {
+            seconds: self.seconds + rhs.seconds,
+        }
     }
 }
 
 impl std::ops::Sub for RationalTime {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
-        Self { seconds: self.seconds - rhs.seconds }
+        Self {
+            seconds: self.seconds - rhs.seconds,
+        }
     }
 }
 

@@ -1,20 +1,24 @@
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_uint};
-use std::path::Path;
 use std::panic::catch_unwind;
+use std::path::Path;
 
 use crate::audio::{calculate_integrated_lufs, extract_waveform, AudioBuffer};
 use crate::automation::detect_silence;
 use crate::effects::{ChromaKeyConfig, ColorGradingConfig};
 use crate::multicam::find_audio_sync_lag;
 use crate::project::Project;
-use std::path::PathBuf;
 use crate::render::{build_ffmpeg_render_args, execute_ffmpeg_render, HardwareCapabilities};
 use crate::subtitles::SubtitleTrack;
 use crate::timeline::{Clip, Marker, RationalTime, TimecodeConfig, Track, TrackType};
+use std::path::PathBuf;
 
 fn to_c_string(s: impl AsRef<str>) -> *mut c_char {
-    CString::new(s.as_ref()).unwrap_or_else(|_| CString::new("").unwrap()).into_raw()
+    CString::new(s.as_ref())
+        .unwrap_or_else(|_| CString::new("").unwrap())
+        .into_raw()
 }
 
 fn err_json(msg: &str) -> *mut c_char {
@@ -67,7 +71,10 @@ pub extern "C" fn uvs_project_new(
 }
 
 #[no_mangle]
-pub extern "C" fn uvs_project_save_atomic(project_json: *const c_char, target_path: *const c_char) -> *mut c_char {
+pub extern "C" fn uvs_project_save_atomic(
+    project_json: *const c_char,
+    target_path: *const c_char,
+) -> *mut c_char {
     if project_json.is_null() || target_path.is_null() {
         return err_json("Null argument to uvs_project_save_atomic");
     }
@@ -77,12 +84,10 @@ pub extern "C" fn uvs_project_save_atomic(project_json: *const c_char, target_pa
         let path_str = unsafe { CStr::from_ptr(target_path).to_str().unwrap_or("") };
 
         match Project::from_json(json_str) {
-            Ok(mut proj) => {
-                match proj.save_atomic(Path::new(path_str)) {
-                    Ok(_) => "{\"status\": \"ok\"}".to_string(),
-                    Err(e) => format!("{{\"error\": \"{}\"}}", e),
-                }
-            }
+            Ok(mut proj) => match proj.save_atomic(Path::new(path_str)) {
+                Ok(_) => "{\"status\": \"ok\"}".to_string(),
+                Err(e) => format!("{{\"error\": \"{}\"}}", e),
+            },
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     });
@@ -114,7 +119,10 @@ pub extern "C" fn uvs_project_load(path: *const c_char) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn uvs_project_relink(project_json: *const c_char, search_dir: *const c_char) -> *mut c_char {
+pub extern "C" fn uvs_project_relink(
+    project_json: *const c_char,
+    search_dir: *const c_char,
+) -> *mut c_char {
     if project_json.is_null() || search_dir.is_null() {
         return err_json("Null pointer to uvs_project_relink");
     }
@@ -127,7 +135,11 @@ pub extern "C" fn uvs_project_relink(project_json: *const c_char, search_dir: *c
             Ok(mut proj) => {
                 let relinked = proj.relink_missing_assets(&[PathBuf::from(dir_str)]);
                 let new_json = proj.to_json().unwrap_or_else(|_| "{}".into());
-                format!("{{\"relinked_count\": {}, \"project\": {}}}", relinked.len(), new_json)
+                format!(
+                    "{{\"relinked_count\": {}, \"project\": {}}}",
+                    relinked.len(),
+                    new_json
+                )
             }
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
@@ -245,12 +257,10 @@ pub extern "C" fn uvs_timeline_split_clip(
         let split_time = RationalTime::from_f64(split_time_s);
 
         match Project::from_json(json_str) {
-            Ok(mut proj) => {
-                match proj.timeline.split_clip_at(tid, cid, split_time) {
-                    Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
-                    Err(e) => format!("{{\"error\": \"{}\"}}", e),
-                }
-            }
+            Ok(mut proj) => match proj.timeline.split_clip_at(tid, cid, split_time) {
+                Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
+                Err(e) => format!("{{\"error\": \"{}\"}}", e),
+            },
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     });
@@ -277,12 +287,10 @@ pub extern "C" fn uvs_timeline_ripple_delete(
         let cid = unsafe { CStr::from_ptr(clip_id).to_str().unwrap_or("") };
 
         match Project::from_json(json_str) {
-            Ok(mut proj) => {
-                match proj.timeline.ripple_delete(tid, cid) {
-                    Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
-                    Err(e) => format!("{{\"error\": \"{}\"}}", e),
-                }
-            }
+            Ok(mut proj) => match proj.timeline.ripple_delete(tid, cid) {
+                Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
+                Err(e) => format!("{{\"error\": \"{}\"}}", e),
+            },
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     });
@@ -342,7 +350,11 @@ pub extern "C" fn uvs_timeline_roll_edit(
     right_clip_id: *const c_char,
     delta_s: f64,
 ) -> *mut c_char {
-    if project_json.is_null() || track_id.is_null() || left_clip_id.is_null() || right_clip_id.is_null() {
+    if project_json.is_null()
+        || track_id.is_null()
+        || left_clip_id.is_null()
+        || right_clip_id.is_null()
+    {
         return err_json("Null argument to uvs_timeline_roll_edit");
     }
 
@@ -354,12 +366,10 @@ pub extern "C" fn uvs_timeline_roll_edit(
         let delta = RationalTime::from_f64(delta_s);
 
         match Project::from_json(json_str) {
-            Ok(mut proj) => {
-                match proj.timeline.roll_edit(tid, l_cid, r_cid, delta) {
-                    Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
-                    Err(e) => format!("{{\"error\": \"{}\"}}", e),
-                }
-            }
+            Ok(mut proj) => match proj.timeline.roll_edit(tid, l_cid, r_cid, delta) {
+                Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
+                Err(e) => format!("{{\"error\": \"{}\"}}", e),
+            },
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     });
@@ -388,12 +398,10 @@ pub extern "C" fn uvs_timeline_slip_edit(
         let delta = RationalTime::from_f64(delta_s);
 
         match Project::from_json(json_str) {
-            Ok(mut proj) => {
-                match proj.timeline.slip_edit(tid, cid, delta) {
-                    Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
-                    Err(e) => format!("{{\"error\": \"{}\"}}", e),
-                }
-            }
+            Ok(mut proj) => match proj.timeline.slip_edit(tid, cid, delta) {
+                Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
+                Err(e) => format!("{{\"error\": \"{}\"}}", e),
+            },
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     });
@@ -422,12 +430,10 @@ pub extern "C" fn uvs_timeline_slide_edit(
         let delta = RationalTime::from_f64(delta_s);
 
         match Project::from_json(json_str) {
-            Ok(mut proj) => {
-                match proj.timeline.slide_edit(tid, cid, delta) {
-                    Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
-                    Err(e) => format!("{{\"error\": \"{}\"}}", e),
-                }
-            }
+            Ok(mut proj) => match proj.timeline.slide_edit(tid, cid, delta) {
+                Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
+                Err(e) => format!("{{\"error\": \"{}\"}}", e),
+            },
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     });
@@ -456,12 +462,10 @@ pub extern "C" fn uvs_timeline_set_speed(
         let cid = unsafe { CStr::from_ptr(clip_id).to_str().unwrap_or("") };
 
         match Project::from_json(json_str) {
-            Ok(mut proj) => {
-                match proj.timeline.set_clip_speed(tid, cid, speed, reverse != 0) {
-                    Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
-                    Err(e) => format!("{{\"error\": \"{}\"}}", e),
-                }
-            }
+            Ok(mut proj) => match proj.timeline.set_clip_speed(tid, cid, speed, reverse != 0) {
+                Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
+                Err(e) => format!("{{\"error\": \"{}\"}}", e),
+            },
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     });
@@ -488,12 +492,10 @@ pub extern "C" fn uvs_timeline_link_clips(
         let c2 = unsafe { CStr::from_ptr(clip2_id).to_str().unwrap_or("") };
 
         match Project::from_json(json_str) {
-            Ok(mut proj) => {
-                match proj.timeline.link_clips(c1, c2) {
-                    Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
-                    Err(e) => format!("{{\"error\": \"{}\"}}", e),
-                }
-            }
+            Ok(mut proj) => match proj.timeline.link_clips(c1, c2) {
+                Ok(_) => proj.to_json().unwrap_or_else(|_| "{}".into()),
+                Err(e) => format!("{{\"error\": \"{}\"}}", e),
+            },
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }
     });
@@ -518,9 +520,21 @@ pub extern "C" fn uvs_timeline_add_marker(
 
     let res = catch_unwind(|| {
         let json_str = unsafe { CStr::from_ptr(project_json).to_str().unwrap_or("") };
-        let marker_name = if name.is_null() { "Marker" } else { unsafe { CStr::from_ptr(name).to_str().unwrap_or("Marker") } };
-        let marker_color = if color.is_null() { "#00D2FF" } else { unsafe { CStr::from_ptr(color).to_str().unwrap_or("#00D2FF") } };
-        let marker_comment = if comment.is_null() { "" } else { unsafe { CStr::from_ptr(comment).to_str().unwrap_or("") } };
+        let marker_name = if name.is_null() {
+            "Marker"
+        } else {
+            unsafe { CStr::from_ptr(name).to_str().unwrap_or("Marker") }
+        };
+        let marker_color = if color.is_null() {
+            "#00D2FF"
+        } else {
+            unsafe { CStr::from_ptr(color).to_str().unwrap_or("#00D2FF") }
+        };
+        let marker_comment = if comment.is_null() {
+            ""
+        } else {
+            unsafe { CStr::from_ptr(comment).to_str().unwrap_or("") }
+        };
 
         match Project::from_json(json_str) {
             Ok(mut proj) => {
@@ -559,9 +573,21 @@ pub extern "C" fn uvs_subtitles_parse(
 
     let res = catch_unwind(|| {
         let c_str = unsafe { CStr::from_ptr(content).to_str().unwrap_or("") };
-        let fmt = if format_type.is_null() { "srt" } else { unsafe { CStr::from_ptr(format_type).to_str().unwrap_or("srt") } };
-        let lang = if language.is_null() { "en" } else { unsafe { CStr::from_ptr(language).to_str().unwrap_or("en") } };
-        let t = if title.is_null() { "Subtitles" } else { unsafe { CStr::from_ptr(title).to_str().unwrap_or("Subtitles") } };
+        let fmt = if format_type.is_null() {
+            "srt"
+        } else {
+            unsafe { CStr::from_ptr(format_type).to_str().unwrap_or("srt") }
+        };
+        let lang = if language.is_null() {
+            "en"
+        } else {
+            unsafe { CStr::from_ptr(language).to_str().unwrap_or("en") }
+        };
+        let t = if title.is_null() {
+            "Subtitles"
+        } else {
+            unsafe { CStr::from_ptr(title).to_str().unwrap_or("Subtitles") }
+        };
 
         let track_res = match fmt.to_lowercase().as_str() {
             "vtt" | "webvtt" => SubtitleTrack::parse_vtt(c_str, lang, t),
@@ -582,14 +608,21 @@ pub extern "C" fn uvs_subtitles_parse(
 }
 
 #[no_mangle]
-pub extern "C" fn uvs_subtitles_export(track_json: *const c_char, format_type: *const c_char) -> *mut c_char {
+pub extern "C" fn uvs_subtitles_export(
+    track_json: *const c_char,
+    format_type: *const c_char,
+) -> *mut c_char {
     if track_json.is_null() {
         return err_json("Null track_json in uvs_subtitles_export");
     }
 
     let res = catch_unwind(|| {
         let j_str = unsafe { CStr::from_ptr(track_json).to_str().unwrap_or("") };
-        let fmt = if format_type.is_null() { "srt" } else { unsafe { CStr::from_ptr(format_type).to_str().unwrap_or("srt") } };
+        let fmt = if format_type.is_null() {
+            "srt"
+        } else {
+            unsafe { CStr::from_ptr(format_type).to_str().unwrap_or("srt") }
+        };
 
         match serde_json::from_str::<SubtitleTrack>(j_str) {
             Ok(track) => match fmt.to_lowercase().as_str() {
@@ -815,7 +848,10 @@ pub extern "C" fn uvs_multicam_commit_cuts(
         match group.commit_angle_cuts_to_timeline(&cuts, &mut proj.timeline) {
             Ok(count) => {
                 let new_json = proj.to_json().unwrap_or_else(|_| "{}".into());
-                format!("{{\"inserted_cuts\": {}, \"project\": {}}}", count, new_json)
+                format!(
+                    "{{\"inserted_cuts\": {}, \"project\": {}}}",
+                    count, new_json
+                )
             }
             Err(e) => format!("{{\"error\": \"{}\"}}", e),
         }

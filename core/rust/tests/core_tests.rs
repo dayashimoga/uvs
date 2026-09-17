@@ -10,7 +10,8 @@ use uvs_core::multicam::find_audio_sync_lag;
 use uvs_core::project::Project;
 use uvs_core::subtitles::SubtitleTrack;
 use uvs_core::timeline::{
-    BlendMode, Clip, Interpolation, Keyframe, KeyframeTrack, Marker, RationalTime, TimecodeConfig, Timeline, Track, TrackType, Transform,
+    BlendMode, Clip, Interpolation, Keyframe, KeyframeTrack, Marker, RationalTime, TimecodeConfig,
+    Timeline, Track, TrackType, Transform,
 };
 use uvs_core::undo::{Action, UndoStack};
 
@@ -24,7 +25,11 @@ fn test_timecode_rational_math() {
     let cfg_df = TimecodeConfig::fps_29_97();
     let t_min = RationalTime::from_seconds(60, 1);
     let tc_str = t_min.to_timecode_string(cfg_df);
-    assert!(tc_str.contains(';'), "Drop-frame format must contain semicolon: {}", tc_str);
+    assert!(
+        tc_str.contains(';'),
+        "Drop-frame format must contain semicolon: {}",
+        tc_str
+    );
 
     let parsed = RationalTime::parse_timecode("00:01:00:00", TimecodeConfig::fps_30()).unwrap();
     assert_eq!(parsed.to_frames(TimecodeConfig::fps_30()), 1800);
@@ -35,15 +40,33 @@ fn test_timeline_operations() {
     let mut tl = Timeline::new(1920, 1080, TimecodeConfig::fps_30());
     let mut v1 = Track::new("V1", TrackType::Video, 0);
 
-    let c1 = Clip::new("Clip1", "media1.mp4", RationalTime::zero(), RationalTime::from_seconds(5, 1));
-    let c2 = Clip::new("Clip2", "media2.mp4", RationalTime::from_seconds(5, 1), RationalTime::from_seconds(5, 1));
+    let c1 = Clip::new(
+        "Clip1",
+        "media1.mp4",
+        RationalTime::zero(),
+        RationalTime::from_seconds(5, 1),
+    );
+    let c2 = Clip::new(
+        "Clip2",
+        "media2.mp4",
+        RationalTime::from_seconds(5, 1),
+        RationalTime::from_seconds(5, 1),
+    );
 
     assert!(v1.add_clip(c1).is_ok());
     assert!(v1.add_clip(c2).is_ok());
 
     // Overlap test
-    let c_bad = Clip::new("ClipBad", "bad.mp4", RationalTime::from_seconds(3, 1), RationalTime::from_seconds(4, 1));
-    assert!(v1.add_clip(c_bad).is_err(), "Overlapping clip must be rejected");
+    let c_bad = Clip::new(
+        "ClipBad",
+        "bad.mp4",
+        RationalTime::from_seconds(3, 1),
+        RationalTime::from_seconds(4, 1),
+    );
+    assert!(
+        v1.add_clip(c_bad).is_err(),
+        "Overlapping clip must be rejected"
+    );
 
     tl.add_track(v1);
     assert_eq!(tl.total_duration(), RationalTime::from_seconds(10, 1));
@@ -52,10 +75,18 @@ fn test_timeline_operations() {
     let clip1_id = tl.tracks[0].clips[0].id.clone();
 
     // Split clip at 2.0s
-    assert!(tl.split_clip_at(&track_id, &clip1_id, RationalTime::from_seconds(2, 1)).is_ok());
+    assert!(tl
+        .split_clip_at(&track_id, &clip1_id, RationalTime::from_seconds(2, 1))
+        .is_ok());
     assert_eq!(tl.tracks[0].clips.len(), 3);
-    assert_eq!(tl.tracks[0].clips[0].duration, RationalTime::from_seconds(2, 1));
-    assert_eq!(tl.tracks[0].clips[1].duration, RationalTime::from_seconds(3, 1));
+    assert_eq!(
+        tl.tracks[0].clips[0].duration,
+        RationalTime::from_seconds(2, 1)
+    );
+    assert_eq!(
+        tl.tracks[0].clips[1].duration,
+        RationalTime::from_seconds(3, 1)
+    );
 
     // Ripple delete first split clip
     let first_id = tl.tracks[0].clips[0].id.clone();
@@ -79,7 +110,11 @@ fn test_keyframe_interpolation() {
     });
 
     let mid = track.value_at(RationalTime::from_seconds(1, 1), 0.0);
-    assert!((mid - 50.0).abs() < 1e-3, "Midpoint linear keyframe must be 50.0, got {}", mid);
+    assert!(
+        (mid - 50.0).abs() < 1e-3,
+        "Midpoint linear keyframe must be 50.0, got {}",
+        mid
+    );
 }
 
 #[test]
@@ -102,11 +137,33 @@ fn test_project_atomic_save_and_migration() {
 #[test]
 fn test_frame_cache_lru_budget() {
     let cache = FrameCache::new(2000); // 2000 bytes budget
-    let key1 = FrameCacheKey { media_path: "test.mp4".into(), frame_number: 1, width: 10, height: 10 };
-    let frame1 = FrameBuffer { key: key1.clone(), width: 10, height: 10, data: vec![0u8; 1200], pts_seconds: 0.0 };
+    let key1 = FrameCacheKey {
+        media_path: "test.mp4".into(),
+        frame_number: 1,
+        width: 10,
+        height: 10,
+    };
+    let frame1 = FrameBuffer {
+        key: key1.clone(),
+        width: 10,
+        height: 10,
+        data: vec![0u8; 1200],
+        pts_seconds: 0.0,
+    };
 
-    let key2 = FrameCacheKey { media_path: "test.mp4".into(), frame_number: 2, width: 10, height: 10 };
-    let frame2 = FrameBuffer { key: key2.clone(), width: 10, height: 10, data: vec![0u8; 1200], pts_seconds: 0.033 };
+    let key2 = FrameCacheKey {
+        media_path: "test.mp4".into(),
+        frame_number: 2,
+        width: 10,
+        height: 10,
+    };
+    let frame2 = FrameBuffer {
+        key: key2.clone(),
+        width: 10,
+        height: 10,
+        data: vec![0u8; 1200],
+        pts_seconds: 0.033,
+    };
 
     cache.insert(frame1);
     assert!(cache.get(&key1).is_some());
@@ -114,7 +171,10 @@ fn test_frame_cache_lru_budget() {
     // Inserting frame2 exceeds 2000 bytes, should evict frame1
     cache.insert(frame2);
     assert!(cache.get(&key2).is_some());
-    assert!(cache.get(&key1).is_none(), "Frame 1 must be evicted to stay within memory budget");
+    assert!(
+        cache.get(&key1).is_none(),
+        "Frame 1 must be evicted to stay within memory budget"
+    );
 }
 
 #[test]
@@ -150,7 +210,11 @@ fn test_audio_dsp_eq_compressor_lufs() {
     }
 
     let lufs = calculate_integrated_lufs(&buf);
-    assert!(lufs > -30.0 && lufs < 0.0, "Expected reasonable LUFS, got {}", lufs);
+    assert!(
+        lufs > -30.0 && lufs < 0.0,
+        "Expected reasonable LUFS, got {}",
+        lufs
+    );
 
     let eq_cfg = EqualizerConfig {
         low_shelf_gain: 3.0,
@@ -179,9 +243,14 @@ fn test_color_grading_and_lut() {
         ..Default::default()
     };
     let (r, _g, _b) = cfg.apply_to_rgb(0.2, 0.2, 0.2);
-    assert!((r - 0.4).abs() < 1e-3, "Expected 0.4 exposure boost, got {}", r);
+    assert!(
+        (r - 0.4).abs() < 1e-3,
+        "Expected 0.4 exposure boost, got {}",
+        r
+    );
 
-    let cube_content = "TITLE \"Test\"\nLUT_3D_SIZE 2\n0 0 0\n1 0 0\n0 1 0\n1 1 0\n0 0 1\n1 0 1\n0 1 1\n1 1 1";
+    let cube_content =
+        "TITLE \"Test\"\nLUT_3D_SIZE 2\n0 0 0\n1 0 0\n0 1 0\n1 1 0\n0 0 1\n1 0 1\n0 1 1\n1 1 1";
     let lut = Lut3D::parse_cube(cube_content).unwrap();
     let (lr, _lg, _lb) = lut.lookup(0.5, 0.5, 0.5);
     assert!((lr - 0.5).abs() < 1e-2);
@@ -254,7 +323,12 @@ fn test_undo_redo_invertible_stack() {
 
     let mut stack = UndoStack::new(50);
 
-    let clip = Clip::new("TestClip", "test.mp4", RationalTime::zero(), RationalTime::from_seconds(4, 1));
+    let clip = Clip::new(
+        "TestClip",
+        "test.mp4",
+        RationalTime::zero(),
+        RationalTime::from_seconds(4, 1),
+    );
     let clip_id = clip.id.clone();
 
     // Action 1: Add Clip
@@ -300,8 +374,18 @@ fn test_nle_trim_roll_slip_slide_operations() {
     let mut tl = Timeline::new(1920, 1080, TimecodeConfig::fps_30());
     let mut v1 = Track::new("V1", TrackType::Video, 0);
 
-    let c1 = Clip::new("Clip1", "c1.mp4", RationalTime::zero(), RationalTime::from_seconds(5, 1));
-    let c2 = Clip::new("Clip2", "c2.mp4", RationalTime::from_seconds(5, 1), RationalTime::from_seconds(5, 1));
+    let c1 = Clip::new(
+        "Clip1",
+        "c1.mp4",
+        RationalTime::zero(),
+        RationalTime::from_seconds(5, 1),
+    );
+    let c2 = Clip::new(
+        "Clip2",
+        "c2.mp4",
+        RationalTime::from_seconds(5, 1),
+        RationalTime::from_seconds(5, 1),
+    );
     v1.add_clip(c1).unwrap();
     v1.add_clip(c2).unwrap();
     tl.add_track(v1);
@@ -313,9 +397,18 @@ fn test_nle_trim_roll_slip_slide_operations() {
     // 1. Roll Edit: move cut point right by 1s (C1 becomes 6s, C2 becomes 4s, starting at 6s)
     let delta = RationalTime::from_seconds(1, 1);
     assert!(tl.roll_edit(&tid, &c1_id, &c2_id, delta).is_ok());
-    assert_eq!(tl.tracks[0].clips[0].duration, RationalTime::from_seconds(6, 1));
-    assert_eq!(tl.tracks[0].clips[1].start_time, RationalTime::from_seconds(6, 1));
-    assert_eq!(tl.tracks[0].clips[1].duration, RationalTime::from_seconds(4, 1));
+    assert_eq!(
+        tl.tracks[0].clips[0].duration,
+        RationalTime::from_seconds(6, 1)
+    );
+    assert_eq!(
+        tl.tracks[0].clips[1].start_time,
+        RationalTime::from_seconds(6, 1)
+    );
+    assert_eq!(
+        tl.tracks[0].clips[1].duration,
+        RationalTime::from_seconds(4, 1)
+    );
     assert_eq!(tl.total_duration(), RationalTime::from_seconds(10, 1));
 
     // 2. Slip Edit: adjust in-point of C2 by +0.5s without moving start_time or duration
@@ -323,17 +416,36 @@ fn test_nle_trim_roll_slip_slide_operations() {
     let orig_in = tl.tracks[0].clips[1].in_point;
     assert!(tl.slip_edit(&tid, &c2_id, slip_delta).is_ok());
     assert_eq!(tl.tracks[0].clips[1].in_point, orig_in + slip_delta);
-    assert_eq!(tl.tracks[0].clips[1].duration, RationalTime::from_seconds(4, 1));
-    assert_eq!(tl.tracks[0].clips[1].start_time, RationalTime::from_seconds(6, 1));
+    assert_eq!(
+        tl.tracks[0].clips[1].duration,
+        RationalTime::from_seconds(4, 1)
+    );
+    assert_eq!(
+        tl.tracks[0].clips[1].start_time,
+        RationalTime::from_seconds(6, 1)
+    );
 
     // 3. Head trim C1 from 0s to 1s
-    assert!(tl.trim_clip_head(&tid, &c1_id, RationalTime::from_seconds(1, 1)).is_ok());
-    assert_eq!(tl.tracks[0].clips[0].start_time, RationalTime::from_seconds(1, 1));
-    assert_eq!(tl.tracks[0].clips[0].duration, RationalTime::from_seconds(5, 1));
+    assert!(tl
+        .trim_clip_head(&tid, &c1_id, RationalTime::from_seconds(1, 1))
+        .is_ok());
+    assert_eq!(
+        tl.tracks[0].clips[0].start_time,
+        RationalTime::from_seconds(1, 1)
+    );
+    assert_eq!(
+        tl.tracks[0].clips[0].duration,
+        RationalTime::from_seconds(5, 1)
+    );
 
     // 4. Ripple trim head of C2 by 1s
-    assert!(tl.ripple_trim_head(&tid, &c2_id, RationalTime::from_seconds(1, 1)).is_ok());
-    assert_eq!(tl.tracks[0].clips[1].duration, RationalTime::from_seconds(3, 1));
+    assert!(tl
+        .ripple_trim_head(&tid, &c2_id, RationalTime::from_seconds(1, 1))
+        .is_ok());
+    assert_eq!(
+        tl.tracks[0].clips[1].duration,
+        RationalTime::from_seconds(3, 1)
+    );
 }
 
 #[test]
@@ -342,8 +454,18 @@ fn test_nle_speed_reverse_link_group_markers() {
     let mut v1 = Track::new("V1", TrackType::Video, 0);
     let mut a1 = Track::new("A1", TrackType::Audio, 1);
 
-    let c_v = Clip::new("VideoClip", "clip.mp4", RationalTime::zero(), RationalTime::from_seconds(10, 1));
-    let c_a = Clip::new("AudioClip", "clip.mp4", RationalTime::zero(), RationalTime::from_seconds(10, 1));
+    let c_v = Clip::new(
+        "VideoClip",
+        "clip.mp4",
+        RationalTime::zero(),
+        RationalTime::from_seconds(10, 1),
+    );
+    let c_a = Clip::new(
+        "AudioClip",
+        "clip.mp4",
+        RationalTime::zero(),
+        RationalTime::from_seconds(10, 1),
+    );
     let cv_id = c_v.id.clone();
     let ca_id = c_a.id.clone();
 
@@ -354,8 +476,14 @@ fn test_nle_speed_reverse_link_group_markers() {
 
     // Link clips (A/V sync lock)
     assert!(tl.link_clips(&cv_id, &ca_id).is_ok());
-    assert_eq!(tl.tracks[0].clips[0].linked_clip_id.as_deref(), Some(ca_id.as_str()));
-    assert_eq!(tl.tracks[1].clips[0].linked_clip_id.as_deref(), Some(cv_id.as_str()));
+    assert_eq!(
+        tl.tracks[0].clips[0].linked_clip_id.as_deref(),
+        Some(ca_id.as_str())
+    );
+    assert_eq!(
+        tl.tracks[1].clips[0].linked_clip_id.as_deref(),
+        Some(cv_id.as_str())
+    );
 
     // Speed & Reverse
     let v_tid = tl.tracks[0].id.clone();
@@ -365,8 +493,14 @@ fn test_nle_speed_reverse_link_group_markers() {
 
     // Grouping
     tl.group_clips(&[&cv_id, &ca_id], Some("group_scene1".into()));
-    assert_eq!(tl.tracks[0].clips[0].group_id.as_deref(), Some("group_scene1"));
-    assert_eq!(tl.tracks[1].clips[0].group_id.as_deref(), Some("group_scene1"));
+    assert_eq!(
+        tl.tracks[0].clips[0].group_id.as_deref(),
+        Some("group_scene1")
+    );
+    assert_eq!(
+        tl.tracks[1].clips[0].group_id.as_deref(),
+        Some("group_scene1")
+    );
 
     // Markers
     tl.add_marker(Marker {
@@ -466,7 +600,10 @@ fn test_atomic_save_crash_injection_and_recovery() {
     // Original file must remain 100% intact and valid
     let loaded = Project::load_from_file(&target_path).unwrap();
     assert_eq!(loaded.name, "Crash Test Project");
-    assert_eq!(std::fs::metadata(&target_path).unwrap().len(), original_size);
+    assert_eq!(
+        std::fs::metadata(&target_path).unwrap().len(),
+        original_size
+    );
 
     // Now overwrite cleanly
     proj.name = "Updated Safe Project".into();
@@ -775,5 +912,3 @@ fn test_atomic_save_fault_injection_and_disk_full() {
     let _ = std::fs::remove_file(&valid_path);
     let _ = std::fs::remove_dir_all(&read_only_dir);
 }
-
-

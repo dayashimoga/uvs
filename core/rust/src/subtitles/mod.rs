@@ -28,11 +28,13 @@ impl SubtitleTrack {
 
     pub fn add_cue(&mut self, cue: SubtitleCue) {
         self.cues.push(cue);
-        self.cues.sort_by(|a, b| a.start_time.cmp(&b.start_time));
+        self.cues.sort_by_key(|a| a.start_time);
     }
 
     pub fn cue_at(&self, time: RationalTime) -> Option<&SubtitleCue> {
-        self.cues.iter().find(|c| time >= c.start_time && time <= c.end_time)
+        self.cues
+            .iter()
+            .find(|c| time >= c.start_time && time <= c.end_time)
     }
 
     pub fn shift(&mut self, offset: RationalTime) {
@@ -49,7 +51,11 @@ impl SubtitleTrack {
         let raw_cues: Vec<&str> = blocks.split("\n\n").collect();
 
         for block in raw_cues {
-            let lines: Vec<&str> = block.lines().map(|l| l.trim()).filter(|l| !l.is_empty()).collect();
+            let lines: Vec<&str> = block
+                .lines()
+                .map(|l| l.trim())
+                .filter(|l| !l.is_empty())
+                .collect();
             if lines.len() < 2 {
                 continue;
             }
@@ -90,7 +96,11 @@ impl SubtitleTrack {
         let mut out = String::new();
         for (i, cue) in self.cues.iter().enumerate() {
             out.push_str(&format!("{}\n", i + 1));
-            out.push_str(&format!("{} --> {}\n", format_srt_time(cue.start_time), format_srt_time(cue.end_time)));
+            out.push_str(&format!(
+                "{} --> {}\n",
+                format_srt_time(cue.start_time),
+                format_srt_time(cue.end_time)
+            ));
             out.push_str(&format!("{}\n\n", cue.text));
         }
         out
@@ -103,7 +113,11 @@ impl SubtitleTrack {
         let raw_cues: Vec<&str> = blocks.split("\n\n").collect();
 
         for block in raw_cues {
-            let lines: Vec<&str> = block.lines().map(|l| l.trim()).filter(|l| !l.is_empty()).collect();
+            let lines: Vec<&str> = block
+                .lines()
+                .map(|l| l.trim())
+                .filter(|l| !l.is_empty())
+                .collect();
             if lines.is_empty() {
                 continue;
             }
@@ -151,7 +165,11 @@ impl SubtitleTrack {
         let mut out = String::from("WEBVTT\n\n");
         for (i, cue) in self.cues.iter().enumerate() {
             out.push_str(&format!("{}\n", i + 1));
-            out.push_str(&format!("{} --> {}\n", format_vtt_time(cue.start_time), format_vtt_time(cue.end_time)));
+            out.push_str(&format!(
+                "{} --> {}\n",
+                format_vtt_time(cue.start_time),
+                format_vtt_time(cue.end_time)
+            ));
             out.push_str(&format!("{}\n\n", cue.text));
         }
         out
@@ -221,7 +239,9 @@ impl SubtitleTrack {
         out.push_str("Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,2,2,10,10,10,1\n\n");
 
         out.push_str("[Events]\n");
-        out.push_str("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n");
+        out.push_str(
+            "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n",
+        );
         for cue in &self.cues {
             let ass_text = cue.text.replace("\r\n", "\\N").replace('\n', "\\N");
             let style = cue.style.as_deref().unwrap_or("Default");
@@ -253,7 +273,9 @@ fn parse_srt_time(s: &str) -> Result<RationalTime, String> {
 
 fn format_srt_time(t: RationalTime) -> String {
     let mut total_ms = (t.as_f64() * 1000.0).round() as i64;
-    if total_ms < 0 { total_ms = 0; }
+    if total_ms < 0 {
+        total_ms = 0;
+    }
     let ms = total_ms % 1000;
     let s = (total_ms / 1000) % 60;
     let m = (total_ms / 60000) % 60;
@@ -263,7 +285,9 @@ fn format_srt_time(t: RationalTime) -> String {
 
 fn format_vtt_time(t: RationalTime) -> String {
     let mut total_ms = (t.as_f64() * 1000.0).round() as i64;
-    if total_ms < 0 { total_ms = 0; }
+    if total_ms < 0 {
+        total_ms = 0;
+    }
     let ms = total_ms % 1000;
     let s = (total_ms / 1000) % 60;
     let m = (total_ms / 60000) % 60;
@@ -286,7 +310,9 @@ fn parse_ass_time(s: &str) -> Result<RationalTime, String> {
 
 fn format_ass_time(t: RationalTime) -> String {
     let mut total_cs = (t.as_f64() * 100.0).round() as i64;
-    if total_cs < 0 { total_cs = 0; }
+    if total_cs < 0 {
+        total_cs = 0;
+    }
     let cs = total_cs % 100;
     let s = (total_cs / 100) % 60;
     let m = (total_cs / 6000) % 60;

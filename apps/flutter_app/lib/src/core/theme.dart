@@ -27,13 +27,11 @@ class StudioTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.dark(
-        background: background,
         surface: surface,
         primary: accentCyan,
         secondary: accentBlue,
         tertiary: accentEmerald,
         error: accentRed,
-        onBackground: textPrimary,
         onSurface: textPrimary,
       ),
       fontFamily: 'Roboto',

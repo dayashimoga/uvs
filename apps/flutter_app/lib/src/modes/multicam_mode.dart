@@ -12,7 +12,6 @@ class MulticamModeView extends StatefulWidget {
 class _MulticamModeViewState extends State<MulticamModeView> {
   int _activeAngle = 0; // 0, 1, 2, 3
   bool _syncByAudio = true;
-  double _playheadSeconds = 0.0;
   final List<Map<String, dynamic>> _recordedCuts = [];
 
   final List<String> _angles = [

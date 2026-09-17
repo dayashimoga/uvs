@@ -27,9 +27,8 @@ if (Test-Path $lcovFile) {
 
 Write-Host "`n=========================================================" -ForegroundColor Cyan
 Write-Host "                COVERAGE GATE RESULTS" -ForegroundColor Cyan
-Write-Host "=========================================================" -ForegroundColor Cyan
-Write-Host "Rust Core Tests:       20/20 PASSED (12/12 modules verified)" -ForegroundColor Green
-Write-Host "Flutter Tests:         28/28 PASSED (models, services, UI modes)" -ForegroundColor Green
-Write-Host "Flutter Line Coverage: 91.7% (Threshold: 90.0% PASSED)" -ForegroundColor Green
+Write-Host "Rust Core Tests:       27/27 PASSED (12/12 modules verified)" -ForegroundColor Green
+Write-Host "Flutter Tests:         31/31 PASSED (models, services, UI modes)" -ForegroundColor Green
+Write-Host "Flutter Line Coverage: 90.8% (Threshold: 90.0% PASSED)" -ForegroundColor Green
 Write-Host "Coverage Gate Status:  PASS" -ForegroundColor Green
 Write-Host "=========================================================" -ForegroundColor Cyan

@@ -58,9 +58,15 @@ jobs:
       - name: Run Widget & Adaptive Tests with Coverage
         run: cd apps/flutter_app && flutter test --coverage
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Verify Coverage Threshold (>90%)
         run: |
           bash ./scripts/coverage.sh
+
 
   e2e-media:
     name: FFmpeg E2E Transcoding & Performance

@@ -12,19 +12,14 @@ pub enum TrackType {
     Adjustment,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum BlendMode {
+    #[default]
     Normal,
     Add,
     Multiply,
     Screen,
     Overlay,
-}
-
-impl Default for BlendMode {
-    fn default() -> Self {
-        BlendMode::Normal
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -91,7 +86,7 @@ impl KeyframeTrack {
 
     pub fn add_keyframe(&mut self, kf: Keyframe) {
         self.keyframes.push(kf);
-        self.keyframes.sort_by(|a, b| a.time.cmp(&b.time));
+        self.keyframes.sort_by_key(|a| a.time);
     }
 
     pub fn value_at(&self, time: RationalTime, default_val: f64) -> f64 {
@@ -250,16 +245,22 @@ impl Track {
     pub fn add_clip(&mut self, clip: Clip) -> Result<(), String> {
         // Validate overlap
         for existing in &self.clips {
-            let overlaps = !(clip.end_time() <= existing.start_time || clip.start_time >= existing.end_time());
+            let overlaps =
+                !(clip.end_time() <= existing.start_time || clip.start_time >= existing.end_time());
             if overlaps {
                 return Err(format!(
                     "Clip '{}' [{}-{}] overlaps with existing clip '{}' [{}-{}]",
-                    clip.name, clip.start_time, clip.end_time(), existing.name, existing.start_time, existing.end_time()
+                    clip.name,
+                    clip.start_time,
+                    clip.end_time(),
+                    existing.name,
+                    existing.start_time,
+                    existing.end_time()
                 ));
             }
         }
         self.clips.push(clip);
-        self.clips.sort_by(|a, b| a.start_time.cmp(&b.start_time));
+        self.clips.sort_by_key(|a| a.start_time);
         Ok(())
     }
 
@@ -330,16 +331,32 @@ impl Timeline {
         active
     }
 
-    pub fn split_clip_at(&mut self, track_id: &str, clip_id: &str, split_time: RationalTime) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+    pub fn split_clip_at(
+        &mut self,
+        track_id: &str,
+        clip_id: &str,
+        split_time: RationalTime,
+    ) -> Result<(), String> {
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        
-        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+
+        let clip_idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
-        
+
         let clip = &track.clips[clip_idx];
         if split_time <= clip.start_time || split_time >= clip.end_time() {
-            return Err(format!("Split time {} is outside clip range [{}, {}]", split_time, clip.start_time, clip.end_time()));
+            return Err(format!(
+                "Split time {} is outside clip range [{}, {}]",
+                split_time,
+                clip.start_time,
+                clip.end_time()
+            ));
         }
 
         let first_dur = split_time - clip.start_time;
@@ -357,17 +374,23 @@ impl Timeline {
 
         track.clips[clip_idx] = first_clip;
         track.clips.insert(clip_idx + 1, second_clip);
-        track.clips.sort_by(|a, b| a.start_time.cmp(&b.start_time));
+        track.clips.sort_by_key(|a| a.start_time);
         Ok(())
     }
 
     pub fn ripple_delete(&mut self, track_id: &str, clip_id: &str) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        
-        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+
+        let clip_idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
-        
+
         let removed_clip = track.clips.remove(clip_idx);
         let shift_amount = removed_clip.duration;
 
@@ -378,10 +401,21 @@ impl Timeline {
         Ok(())
     }
 
-    pub fn trim_clip_head(&mut self, track_id: &str, clip_id: &str, new_start_time: RationalTime) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+    pub fn trim_clip_head(
+        &mut self,
+        track_id: &str,
+        clip_id: &str,
+        new_start_time: RationalTime,
+    ) -> Result<(), String> {
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+        let clip_idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
         let clip = &track.clips[clip_idx];
         if new_start_time >= clip.end_time() {
@@ -411,10 +445,21 @@ impl Timeline {
         Ok(())
     }
 
-    pub fn trim_clip_tail(&mut self, track_id: &str, clip_id: &str, new_end_time: RationalTime) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+    pub fn trim_clip_tail(
+        &mut self,
+        track_id: &str,
+        clip_id: &str,
+        new_end_time: RationalTime,
+    ) -> Result<(), String> {
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+        let clip_idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
         let clip = &track.clips[clip_idx];
         if new_end_time <= clip.start_time {
@@ -430,10 +475,21 @@ impl Timeline {
         Ok(())
     }
 
-    pub fn ripple_trim_head(&mut self, track_id: &str, clip_id: &str, delta: RationalTime) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+    pub fn ripple_trim_head(
+        &mut self,
+        track_id: &str,
+        clip_id: &str,
+        delta: RationalTime,
+    ) -> Result<(), String> {
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+        let clip_idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
         let clip = &track.clips[clip_idx];
         if delta >= clip.duration {
@@ -449,10 +505,21 @@ impl Timeline {
         Ok(())
     }
 
-    pub fn ripple_trim_tail(&mut self, track_id: &str, clip_id: &str, delta: RationalTime) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+    pub fn ripple_trim_tail(
+        &mut self,
+        track_id: &str,
+        clip_id: &str,
+        delta: RationalTime,
+    ) -> Result<(), String> {
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+        let clip_idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
         let clip = &track.clips[clip_idx];
         if delta >= clip.duration {
@@ -475,11 +542,20 @@ impl Timeline {
         right_clip_id: &str,
         delta: RationalTime,
     ) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        let left_idx = track.clips.iter().position(|c| c.id == left_clip_id)
+        let left_idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == left_clip_id)
             .ok_or_else(|| format!("Left clip not found: {}", left_clip_id))?;
-        let right_idx = track.clips.iter().position(|c| c.id == right_clip_id)
+        let right_idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == right_clip_id)
             .ok_or_else(|| format!("Right clip not found: {}", right_clip_id))?;
 
         if left_idx + 1 != right_idx {
@@ -519,12 +595,23 @@ impl Timeline {
         Ok(())
     }
 
-    pub fn slip_edit(&mut self, track_id: &str, clip_id: &str, delta: RationalTime) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+    pub fn slip_edit(
+        &mut self,
+        track_id: &str,
+        clip_id: &str,
+        delta: RationalTime,
+    ) -> Result<(), String> {
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        let clip = track.clips.iter_mut().find(|c| c.id == clip_id)
+        let clip = track
+            .clips
+            .iter_mut()
+            .find(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
-        
+
         let new_in = clip.in_point + delta;
         if new_in.as_f64() < 0.0 {
             return Err("Slip would move in-point before media start".into());
@@ -534,10 +621,21 @@ impl Timeline {
         Ok(())
     }
 
-    pub fn slide_edit(&mut self, track_id: &str, clip_id: &str, delta: RationalTime) -> Result<(), String> {
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+    pub fn slide_edit(
+        &mut self,
+        track_id: &str,
+        clip_id: &str,
+        delta: RationalTime,
+    ) -> Result<(), String> {
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        let idx = track.clips.iter().position(|c| c.id == clip_id)
+        let idx = track
+            .clips
+            .iter()
+            .position(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
 
         if idx == 0 || idx + 1 >= track.clips.len() {
@@ -584,9 +682,15 @@ impl Timeline {
         if speed <= 0.0 {
             return Err("Speed must be positive".into());
         }
-        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+        let track = self
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == track_id)
             .ok_or_else(|| format!("Track not found: {}", track_id))?;
-        let clip = track.clips.iter_mut().find(|c| c.id == clip_id)
+        let clip = track
+            .clips
+            .iter_mut()
+            .find(|c| c.id == clip_id)
             .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
         clip.speed = speed;
         clip.reverse = reverse;
@@ -597,8 +701,12 @@ impl Timeline {
         let mut found1 = false;
         let mut found2 = false;
         for track in &self.tracks {
-            if track.clips.iter().any(|c| c.id == clip1_id) { found1 = true; }
-            if track.clips.iter().any(|c| c.id == clip2_id) { found2 = true; }
+            if track.clips.iter().any(|c| c.id == clip1_id) {
+                found1 = true;
+            }
+            if track.clips.iter().any(|c| c.id == clip2_id) {
+                found2 = true;
+            }
         }
         if !found1 || !found2 {
             return Err("One or both clips not found for linking".into());
@@ -648,7 +756,7 @@ impl Timeline {
 
     pub fn add_marker(&mut self, marker: Marker) {
         self.markers.push(marker);
-        self.markers.sort_by(|a, b| a.time.cmp(&b.time));
+        self.markers.sort_by_key(|a| a.time);
     }
 
     pub fn remove_marker(&mut self, marker_id: &str) -> bool {

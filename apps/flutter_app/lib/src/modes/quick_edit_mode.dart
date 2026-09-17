@@ -13,12 +13,10 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
   double _trimStart = 0.5;
   double _trimEnd = 3.5;
   final double _duration = 4.0;
-  double _currentTime = 0.5;
 
   int _rotation = 0; // 0, 90, 180, 270
   String _aspectRatio = '16:9'; // '16:9', '9:16', '1:1', '4:3'
   double _speed = 1.0;
-  double _volume = 1.0;
   String _selectedFilter = 'Normal';
   final TextEditingController _subtitleCtrl = TextEditingController(text: "Quick Title Overlay");
 
@@ -235,7 +233,7 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text("Rendering Quick Edit (${_aspectRatio}, ${_selectedFilter}, ${TimecodeHelper.formatDurationSeconds(_trimEnd - _trimStart)}s)..."),
+                      content: Text("Rendering Quick Edit ($_aspectRatio, $_selectedFilter, ${TimecodeHelper.formatDurationSeconds(_trimEnd - _trimStart)}s)..."),
                       backgroundColor: StudioTheme.surfaceElevated,
                     ),
                   );

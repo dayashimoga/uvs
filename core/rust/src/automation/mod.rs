@@ -95,7 +95,7 @@ pub fn detect_scene_cuts(histograms: &[Vec<f32>], threshold: f32) -> Vec<usize> 
 pub fn calculate_reframe_crop(
     src_width: u32,
     src_height: u32,
-    target_aspect: f64, // e.g. 9.0 / 16.0 = 0.5625
+    target_aspect: f64,    // e.g. 9.0 / 16.0 = 0.5625
     subject_center_x: f64, // 0.0 to 1.0
 ) -> (f64, f64, f64, f64) {
     // Returns (crop_left, crop_right, crop_top, crop_bottom) normalized 0.0 to 1.0

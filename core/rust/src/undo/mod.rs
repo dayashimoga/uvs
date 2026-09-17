@@ -53,7 +53,12 @@ impl Action {
                 track_id: track_id.clone(),
                 clip: clip.clone(),
             },
-            Action::MoveClip { track_id, clip_id, from_start, to_start } => Action::MoveClip {
+            Action::MoveClip {
+                track_id,
+                clip_id,
+                from_start,
+                to_start,
+            } => Action::MoveClip {
                 track_id: track_id.clone(),
                 clip_id: clip_id.clone(),
                 from_start: *to_start,
@@ -106,43 +111,101 @@ impl Action {
     pub fn apply(&self, project: &mut Project) -> Result<(), String> {
         match self {
             Action::AddClip { track_id, clip } => {
-                let track = project.timeline.tracks.iter_mut().find(|t| &t.id == track_id)
+                let track = project
+                    .timeline
+                    .tracks
+                    .iter_mut()
+                    .find(|t| &t.id == track_id)
                     .ok_or_else(|| format!("Track not found: {}", track_id))?;
                 track.add_clip(clip.clone())?;
             }
             Action::RemoveClip { track_id, clip } => {
-                let track = project.timeline.tracks.iter_mut().find(|t| &t.id == track_id)
+                let track = project
+                    .timeline
+                    .tracks
+                    .iter_mut()
+                    .find(|t| &t.id == track_id)
                     .ok_or_else(|| format!("Track not found: {}", track_id))?;
                 track.clips.retain(|c| c.id != clip.id);
             }
-            Action::MoveClip { track_id, clip_id, to_start, .. } => {
-                let track = project.timeline.tracks.iter_mut().find(|t| &t.id == track_id)
+            Action::MoveClip {
+                track_id,
+                clip_id,
+                to_start,
+                ..
+            } => {
+                let track = project
+                    .timeline
+                    .tracks
+                    .iter_mut()
+                    .find(|t| &t.id == track_id)
                     .ok_or_else(|| format!("Track not found: {}", track_id))?;
-                let clip = track.clips.iter_mut().find(|c| &c.id == clip_id)
+                let clip = track
+                    .clips
+                    .iter_mut()
+                    .find(|c| &c.id == clip_id)
                     .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
                 clip.start_time = *to_start;
-                track.clips.sort_by(|a, b| a.start_time.cmp(&b.start_time));
+                track.clips.sort_by_key(|a| a.start_time);
             }
-            Action::TrimClip { track_id, clip_id, new_in, new_out, new_duration, .. } => {
-                let track = project.timeline.tracks.iter_mut().find(|t| &t.id == track_id)
+            Action::TrimClip {
+                track_id,
+                clip_id,
+                new_in,
+                new_out,
+                new_duration,
+                ..
+            } => {
+                let track = project
+                    .timeline
+                    .tracks
+                    .iter_mut()
+                    .find(|t| &t.id == track_id)
                     .ok_or_else(|| format!("Track not found: {}", track_id))?;
-                let clip = track.clips.iter_mut().find(|c| &c.id == clip_id)
+                let clip = track
+                    .clips
+                    .iter_mut()
+                    .find(|c| &c.id == clip_id)
                     .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
                 clip.in_point = *new_in;
                 clip.out_point = *new_out;
                 clip.duration = *new_duration;
             }
-            Action::UpdateTransform { track_id, clip_id, new_transform, .. } => {
-                let track = project.timeline.tracks.iter_mut().find(|t| &t.id == track_id)
+            Action::UpdateTransform {
+                track_id,
+                clip_id,
+                new_transform,
+                ..
+            } => {
+                let track = project
+                    .timeline
+                    .tracks
+                    .iter_mut()
+                    .find(|t| &t.id == track_id)
                     .ok_or_else(|| format!("Track not found: {}", track_id))?;
-                let clip = track.clips.iter_mut().find(|c| &c.id == clip_id)
+                let clip = track
+                    .clips
+                    .iter_mut()
+                    .find(|c| &c.id == clip_id)
                     .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
                 clip.transform = new_transform.clone();
             }
-            Action::UpdateVolume { track_id, clip_id, new_volume, .. } => {
-                let track = project.timeline.tracks.iter_mut().find(|t| &t.id == track_id)
+            Action::UpdateVolume {
+                track_id,
+                clip_id,
+                new_volume,
+                ..
+            } => {
+                let track = project
+                    .timeline
+                    .tracks
+                    .iter_mut()
+                    .find(|t| &t.id == track_id)
                     .ok_or_else(|| format!("Track not found: {}", track_id))?;
-                let clip = track.clips.iter_mut().find(|c| &c.id == clip_id)
+                let clip = track
+                    .clips
+                    .iter_mut()
+                    .find(|c| &c.id == clip_id)
                     .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
                 clip.volume = *new_volume;
             }

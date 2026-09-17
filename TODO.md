@@ -46,8 +46,8 @@
 * [x] FFI Memory Safety & Stress: 5,000 continuous project create/edit/free cycles verified with zero leaks, exhaustive null-pointer fuzzing, and panic boundaries across all C-ABI endpoints (`PROVEN`).
 * [x] Security, License & SBOM Audit: 0 secrets detected; permissive open-source licenses verified; standard CycloneDX 1.5 JSON SBOM generated in `dist/uvs_sbom.json` (`PROVEN`).
 * [x] Real Desktop Packaging: eliminated placeholder files in `package.ps1` and packaged real compiled `uvs_core.dll` (2.29 MB) and SBOM into `universal_video_studio_windows_x64.zip`.
-* [x] Production CI/CD & Release Workflows: overhauled `.github/workflows/release.yml` with pre-release quality gate verification, multi-platform matrix builds, and SHA-256 checksum manifests.
 * [x] Requirement Traceability Matrix: embedded complete Requirement -> Implementation -> Test -> Evidence matrix into machine-readable `acceptance.json` and human-readable `acceptance.html`.
+* [x] CI Quality Gate & Linter Hardening: resolved all Rust formatting differences with `cargo fmt`, resolved 75 clippy warnings with `-D warnings`, fixed 19 Flutter analyzer issues and unused fields/imports, updated `scripts/coverage.sh` and `ci.yml` with native runner resilience.
 
 ---
 

@@ -18,7 +18,11 @@ pub use graph::{ImageCanvas, RgbaPixel};
 pub use media::{FrameBuffer, FrameCache, MediaInfo, ProxyManager};
 pub use multicam::{find_audio_sync_lag, MulticamAngle, MulticamGroup, SyncMethod};
 pub use project::{AssetMetadata, Project, RenderSettings};
-pub use render::{build_ffmpeg_render_args, HardwareCapabilities, JobStatus, RenderJob, RenderQueue};
+pub use render::{
+    build_ffmpeg_render_args, HardwareCapabilities, JobStatus, RenderJob, RenderQueue,
+};
 pub use subtitles::{SubtitleCue, SubtitleTrack};
-pub use timeline::{BlendMode, Clip, RationalTime, TimecodeConfig, Timeline, Track, TrackType, Transform};
+pub use timeline::{
+    BlendMode, Clip, RationalTime, TimecodeConfig, Timeline, Track, TrackType, Transform,
+};
 pub use undo::{Action, UndoStack};

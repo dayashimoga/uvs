@@ -71,7 +71,12 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn new(name: impl Into<String>, width: u32, height: u32, timecode_config: TimecodeConfig) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        width: u32,
+        height: u32,
+        timecode_config: TimecodeConfig,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4().to_string(),
@@ -97,7 +102,8 @@ impl Project {
     }
 
     pub fn from_json(json_str: &str) -> Result<Self, String> {
-        let mut proj: Project = serde_json::from_str(json_str).map_err(|e| format!("JSON parse error: {}", e))?;
+        let mut proj: Project =
+            serde_json::from_str(json_str).map_err(|e| format!("JSON parse error: {}", e))?;
         if proj.schema_version > CURRENT_SCHEMA_VERSION {
             return Err(format!(
                 "Project schema version {} is newer than supported version {}",
@@ -118,9 +124,12 @@ impl Project {
 
         let temp_path = target_path.with_extension(format!("tmp.{}", Uuid::new_v4()));
         {
-            let mut file = File::create(&temp_path).map_err(|e| format!("Failed to create temp file: {}", e))?;
-            file.write_all(json_data.as_bytes()).map_err(|e| format!("Failed to write temp file: {}", e))?;
-            file.sync_all().map_err(|e| format!("Failed to sync temp file: {}", e))?;
+            let mut file = File::create(&temp_path)
+                .map_err(|e| format!("Failed to create temp file: {}", e))?;
+            file.write_all(json_data.as_bytes())
+                .map_err(|e| format!("Failed to write temp file: {}", e))?;
+            file.sync_all()
+                .map_err(|e| format!("Failed to sync temp file: {}", e))?;
         }
 
         fs::rename(&temp_path, target_path).map_err(|e| {
@@ -132,18 +141,23 @@ impl Project {
     }
 
     pub fn load_from_file(path: &Path) -> Result<Self, String> {
-        let mut file = File::open(path).map_err(|e| format!("Failed to open project file: {}", e))?;
+        let mut file =
+            File::open(path).map_err(|e| format!("Failed to open project file: {}", e))?;
         let mut contents = String::new();
-        file.read_to_string(&mut contents).map_err(|e| format!("Failed to read project file: {}", e))?;
+        file.read_to_string(&mut contents)
+            .map_err(|e| format!("Failed to read project file: {}", e))?;
         Self::from_json(&contents)
     }
 
     /// Autosave recovery: writes to `<project_dir>/.uvsp.recovery`
     pub fn save_recovery(&self, recovery_path: &Path) -> Result<(), String> {
         let json_data = self.to_json().map_err(|e| e.to_string())?;
-        let mut file = File::create(recovery_path).map_err(|e| format!("Failed to create recovery file: {}", e))?;
-        file.write_all(json_data.as_bytes()).map_err(|e| format!("Failed to write recovery file: {}", e))?;
-        file.sync_all().map_err(|e| format!("Failed to sync recovery file: {}", e))?;
+        let mut file = File::create(recovery_path)
+            .map_err(|e| format!("Failed to create recovery file: {}", e))?;
+        file.write_all(json_data.as_bytes())
+            .map_err(|e| format!("Failed to write recovery file: {}", e))?;
+        file.sync_all()
+            .map_err(|e| format!("Failed to sync recovery file: {}", e))?;
         Ok(())
     }
 

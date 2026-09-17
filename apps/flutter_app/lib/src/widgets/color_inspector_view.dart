@@ -100,7 +100,7 @@ class _ColorInspectorViewState extends State<ColorInspectorView> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(color: StudioTheme.border, width: 2),
-            gradient: SweepGradient(
+            gradient: const SweepGradient(
               colors: [Colors.red, Colors.yellow, Colors.green, Colors.cyan, Colors.blue, Colors.purple, Colors.red],
             ),
           ),

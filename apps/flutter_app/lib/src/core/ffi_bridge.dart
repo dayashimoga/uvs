@@ -12,6 +12,7 @@ class UvsFfiBridge {
   bool _isNative = false;
 
   bool get isNativeLoaded => _isNative;
+  ffi.DynamicLibrary? get dynamicLibrary => _lib;
 
   UvsFfiBridge._() {
     _initLibrary();

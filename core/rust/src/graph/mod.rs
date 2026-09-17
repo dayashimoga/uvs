@@ -49,7 +49,11 @@ impl RgbaPixel {
                         1.0 - 2.0 * (1.0 - b) * (1.0 - t)
                     }
                 };
-                (overlay_ch(r_bot, r_top), overlay_ch(g_bot, g_top), overlay_ch(b_bot, b_top))
+                (
+                    overlay_ch(r_bot, r_top),
+                    overlay_ch(g_bot, g_top),
+                    overlay_ch(b_bot, b_top),
+                )
             }
         };
 

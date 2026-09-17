@@ -2,16 +2,16 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ColorGradingConfig {
-    pub exposure: f64,      // -5.0 to +5.0
-    pub contrast: f64,      // 0.0 to 2.0, default 1.0
-    pub highlights: f64,    // -1.0 to 1.0, default 0.0
-    pub shadows: f64,       // -1.0 to 1.0, default 0.0
-    pub whites: f64,        // -1.0 to 1.0, default 0.0
-    pub blacks: f64,        // -1.0 to 1.0, default 0.0
-    pub temperature: f64,   // -100 to +100 (warm / cool)
-    pub tint: f64,          // -100 to +100 (magenta / green)
-    pub saturation: f64,    // 0.0 to 2.0, default 1.0
-    pub vibrance: f64,      // -1.0 to 1.0, default 0.0
+    pub exposure: f64,    // -5.0 to +5.0
+    pub contrast: f64,    // 0.0 to 2.0, default 1.0
+    pub highlights: f64,  // -1.0 to 1.0, default 0.0
+    pub shadows: f64,     // -1.0 to 1.0, default 0.0
+    pub whites: f64,      // -1.0 to 1.0, default 0.0
+    pub blacks: f64,      // -1.0 to 1.0, default 0.0
+    pub temperature: f64, // -100 to +100 (warm / cool)
+    pub tint: f64,        // -100 to +100 (magenta / green)
+    pub saturation: f64,  // 0.0 to 2.0, default 1.0
+    pub vibrance: f64,    // -1.0 to 1.0, default 0.0
 }
 
 impl Default for ColorGradingConfig {
@@ -101,16 +101,24 @@ impl Lut3D {
             if line.starts_with("LUT_3D_SIZE") {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 2 {
-                    size = parts[1].parse().map_err(|e| format!("Invalid LUT size: {}", e))?;
+                    size = parts[1]
+                        .parse()
+                        .map_err(|e| format!("Invalid LUT size: {}", e))?;
                 }
                 continue;
             }
 
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() == 3 {
-                let r: f32 = parts[0].parse().map_err(|e| format!("Bad float R: {}", e))?;
-                let g: f32 = parts[1].parse().map_err(|e| format!("Bad float G: {}", e))?;
-                let b: f32 = parts[2].parse().map_err(|e| format!("Bad float B: {}", e))?;
+                let r: f32 = parts[0]
+                    .parse()
+                    .map_err(|e| format!("Bad float R: {}", e))?;
+                let g: f32 = parts[1]
+                    .parse()
+                    .map_err(|e| format!("Bad float G: {}", e))?;
+                let b: f32 = parts[2]
+                    .parse()
+                    .map_err(|e| format!("Bad float B: {}", e))?;
                 table.push([r, g, b]);
             }
         }
@@ -118,7 +126,9 @@ impl Lut3D {
         if size == 0 || table.len() != size * size * size {
             return Err(format!(
                 "LUT table size mismatch: expected {} entries for size {}, found {}",
-                size * size * size, size, table.len()
+                size * size * size,
+                size,
+                table.len()
             ));
         }
 
@@ -180,8 +190,8 @@ pub struct ChromaKeyConfig {
     pub key_color_r: u8,
     pub key_color_g: u8,
     pub key_color_b: u8,
-    pub similarity: f64, // 0.0 to 1.0
-    pub smoothness: f64, // 0.0 to 1.0
+    pub similarity: f64,        // 0.0 to 1.0
+    pub smoothness: f64,        // 0.0 to 1.0
     pub spill_suppression: f64, // 0.0 to 1.0
 }
 

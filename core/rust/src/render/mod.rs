@@ -104,7 +104,12 @@ pub struct RenderJob {
 }
 
 impl RenderJob {
-    pub fn new(name: impl Into<String>, output_path: impl Into<String>, total_frames: i64, settings: RenderSettings) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        output_path: impl Into<String>,
+        total_frames: i64,
+        settings: RenderSettings,
+    ) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             name: name.into(),
@@ -124,6 +129,12 @@ pub struct RenderQueue {
     jobs: Arc<Mutex<Vec<RenderJob>>>,
 }
 
+impl Default for RenderQueue {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RenderQueue {
     pub fn new() -> Self {
         Self {
@@ -138,7 +149,12 @@ impl RenderQueue {
     }
 
     pub fn get_job(&self, id: &str) -> Option<RenderJob> {
-        self.jobs.lock().unwrap().iter().find(|j| j.id == id).cloned()
+        self.jobs
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|j| j.id == id)
+            .cloned()
     }
 
     pub fn list_jobs(&self) -> Vec<RenderJob> {
@@ -178,15 +194,15 @@ pub fn build_ffmpeg_render_args(
     settings: &RenderSettings,
     caps: &HardwareCapabilities,
 ) -> Vec<String> {
-    let mut args = vec![
-        "-y".to_string(),
-        "-i".to_string(),
-        input_video.to_string(),
-    ];
+    let mut args = vec!["-y".to_string(), "-i".to_string(), input_video.to_string()];
 
-    let video_codec = if settings.use_hardware_accel && caps.supports_h264_hw && settings.video_codec == "h264" {
+    let video_codec = if settings.use_hardware_accel
+        && caps.supports_h264_hw
+        && settings.video_codec == "h264"
+    {
         &caps.recommended_h264_encoder
-    } else if settings.use_hardware_accel && caps.supports_hevc_hw && settings.video_codec == "hevc" {
+    } else if settings.use_hardware_accel && caps.supports_hevc_hw && settings.video_codec == "hevc"
+    {
         &caps.recommended_hevc_encoder
     } else {
         match settings.video_codec.as_str() {
@@ -244,6 +260,10 @@ pub fn execute_ffmpeg_render(
         Ok(format!("Render completed successfully to {}", output_path))
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(format!("FFmpeg failed with exit code {:?}: {}", output.status.code(), stderr))
+        Err(format!(
+            "FFmpeg failed with exit code {:?}: {}",
+            output.status.code(),
+            stderr
+        ))
     }
 }

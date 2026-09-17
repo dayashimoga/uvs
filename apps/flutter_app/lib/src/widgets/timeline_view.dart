@@ -137,7 +137,7 @@ class _TimelineViewState extends State<TimelineView> {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
@@ -232,7 +232,7 @@ class _TimelineViewState extends State<TimelineView> {
                                   }).toList(),
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
 
@@ -284,7 +284,7 @@ class RulerPainter extends CustomPainter {
       ..color = StudioTheme.textMuted
       ..strokeWidth = 1.0;
 
-    final textStyle = TextStyle(color: StudioTheme.textSecondary, fontSize: 9);
+    const textStyle = TextStyle(color: StudioTheme.textSecondary, fontSize: 9);
 
     int totalSeconds = (size.width / pixelsPerSecond).ceil();
     for (int s = 0; s <= totalSeconds; s++) {
