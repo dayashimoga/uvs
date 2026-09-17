@@ -165,6 +165,7 @@ pub struct Clip {
     pub start_time: RationalTime,
     pub duration: RationalTime,
     pub speed: f64,
+    pub reverse: bool,
     pub volume: f64,
     pub opacity: f64,
     pub blend_mode: BlendMode,
@@ -172,6 +173,8 @@ pub struct Clip {
     pub keyframe_tracks: Vec<KeyframeTrack>,
     pub transition_in: Option<Transition>,
     pub transition_out: Option<Transition>,
+    pub linked_clip_id: Option<String>,
+    pub group_id: Option<String>,
 }
 
 impl Clip {
@@ -190,6 +193,7 @@ impl Clip {
             start_time,
             duration,
             speed: 1.0,
+            reverse: false,
             volume: 1.0,
             opacity: 1.0,
             blend_mode: BlendMode::Normal,
@@ -197,6 +201,8 @@ impl Clip {
             keyframe_tracks: Vec::new(),
             transition_in: None,
             transition_out: None,
+            linked_clip_id: None,
+            group_id: None,
         }
     }
 
@@ -370,5 +376,288 @@ impl Timeline {
             clip.start_time = clip.start_time - shift_amount;
         }
         Ok(())
+    }
+
+    pub fn trim_clip_head(&mut self, track_id: &str, clip_id: &str, new_start_time: RationalTime) -> Result<(), String> {
+        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+            .ok_or_else(|| format!("Track not found: {}", track_id))?;
+        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+            .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
+        let clip = &track.clips[clip_idx];
+        if new_start_time >= clip.end_time() {
+            return Err("New start time must be before clip end time".into());
+        }
+        if new_start_time < clip.start_time {
+            // Expanding head to the left
+            if clip_idx > 0 && new_start_time < track.clips[clip_idx - 1].end_time() {
+                return Err("Trim overlaps preceding clip".into());
+            }
+            let delta = clip.start_time - new_start_time;
+            if clip.in_point < delta {
+                return Err("Insufficient media head for expansion".into());
+            }
+            let clip = &mut track.clips[clip_idx];
+            clip.in_point = clip.in_point - delta;
+            clip.duration = clip.duration + delta;
+            clip.start_time = new_start_time;
+        } else {
+            // Shrinking head to the right
+            let delta = new_start_time - clip.start_time;
+            let clip = &mut track.clips[clip_idx];
+            clip.in_point = clip.in_point + delta;
+            clip.duration = clip.duration - delta;
+            clip.start_time = new_start_time;
+        }
+        Ok(())
+    }
+
+    pub fn trim_clip_tail(&mut self, track_id: &str, clip_id: &str, new_end_time: RationalTime) -> Result<(), String> {
+        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+            .ok_or_else(|| format!("Track not found: {}", track_id))?;
+        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+            .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
+        let clip = &track.clips[clip_idx];
+        if new_end_time <= clip.start_time {
+            return Err("New end time must be after clip start time".into());
+        }
+        if clip_idx + 1 < track.clips.len() && new_end_time > track.clips[clip_idx + 1].start_time {
+            return Err("Trim overlaps succeeding clip".into());
+        }
+        let clip = &mut track.clips[clip_idx];
+        let new_dur = new_end_time - clip.start_time;
+        clip.duration = new_dur;
+        clip.out_point = clip.in_point + new_dur;
+        Ok(())
+    }
+
+    pub fn ripple_trim_head(&mut self, track_id: &str, clip_id: &str, delta: RationalTime) -> Result<(), String> {
+        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+            .ok_or_else(|| format!("Track not found: {}", track_id))?;
+        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+            .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
+        let clip = &track.clips[clip_idx];
+        if delta >= clip.duration {
+            return Err("Cannot ripple trim head past clip duration".into());
+        }
+        let clip = &mut track.clips[clip_idx];
+        clip.in_point = clip.in_point + delta;
+        clip.duration = clip.duration - delta;
+        // Shift all subsequent clips by delta
+        for c in &mut track.clips[clip_idx + 1..] {
+            c.start_time = c.start_time - delta;
+        }
+        Ok(())
+    }
+
+    pub fn ripple_trim_tail(&mut self, track_id: &str, clip_id: &str, delta: RationalTime) -> Result<(), String> {
+        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+            .ok_or_else(|| format!("Track not found: {}", track_id))?;
+        let clip_idx = track.clips.iter().position(|c| c.id == clip_id)
+            .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
+        let clip = &track.clips[clip_idx];
+        if delta >= clip.duration {
+            return Err("Cannot ripple trim tail past clip duration".into());
+        }
+        let clip = &mut track.clips[clip_idx];
+        clip.duration = clip.duration - delta;
+        clip.out_point = clip.in_point + clip.duration;
+        // Shift all subsequent clips by delta
+        for c in &mut track.clips[clip_idx + 1..] {
+            c.start_time = c.start_time - delta;
+        }
+        Ok(())
+    }
+
+    pub fn roll_edit(
+        &mut self,
+        track_id: &str,
+        left_clip_id: &str,
+        right_clip_id: &str,
+        delta: RationalTime,
+    ) -> Result<(), String> {
+        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+            .ok_or_else(|| format!("Track not found: {}", track_id))?;
+        let left_idx = track.clips.iter().position(|c| c.id == left_clip_id)
+            .ok_or_else(|| format!("Left clip not found: {}", left_clip_id))?;
+        let right_idx = track.clips.iter().position(|c| c.id == right_clip_id)
+            .ok_or_else(|| format!("Right clip not found: {}", right_clip_id))?;
+
+        if left_idx + 1 != right_idx {
+            return Err("Roll edit requires adjacent clips on the same track".into());
+        }
+
+        let left_clip = &track.clips[left_idx];
+        let right_clip = &track.clips[right_idx];
+
+        if left_clip.end_time() != right_clip.start_time {
+            return Err("Clips must touch seamlessly for a roll edit".into());
+        }
+
+        if delta.as_f64() > 0.0 {
+            if delta >= right_clip.duration {
+                return Err("Delta exceeds right clip duration".into());
+            }
+        } else {
+            let abs_delta = RationalTime::zero() - delta;
+            if abs_delta >= left_clip.duration {
+                return Err("Delta exceeds left clip duration".into());
+            }
+            if right_clip.in_point < abs_delta {
+                return Err("Insufficient media head on right clip".into());
+            }
+        }
+
+        let left = &mut track.clips[left_idx];
+        left.duration = left.duration + delta;
+        left.out_point = left.out_point + delta;
+
+        let right = &mut track.clips[right_idx];
+        right.start_time = right.start_time + delta;
+        right.in_point = right.in_point + delta;
+        right.duration = right.duration - delta;
+
+        Ok(())
+    }
+
+    pub fn slip_edit(&mut self, track_id: &str, clip_id: &str, delta: RationalTime) -> Result<(), String> {
+        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+            .ok_or_else(|| format!("Track not found: {}", track_id))?;
+        let clip = track.clips.iter_mut().find(|c| c.id == clip_id)
+            .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
+        
+        let new_in = clip.in_point + delta;
+        if new_in.as_f64() < 0.0 {
+            return Err("Slip would move in-point before media start".into());
+        }
+        clip.in_point = new_in;
+        clip.out_point = clip.out_point + delta;
+        Ok(())
+    }
+
+    pub fn slide_edit(&mut self, track_id: &str, clip_id: &str, delta: RationalTime) -> Result<(), String> {
+        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+            .ok_or_else(|| format!("Track not found: {}", track_id))?;
+        let idx = track.clips.iter().position(|c| c.id == clip_id)
+            .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
+
+        if idx == 0 || idx + 1 >= track.clips.len() {
+            return Err("Slide edit requires preceding and succeeding clips".into());
+        }
+
+        let prev = &track.clips[idx - 1];
+        let _curr = &track.clips[idx];
+        let next = &track.clips[idx + 1];
+
+        if delta.as_f64() > 0.0 {
+            if delta >= next.duration {
+                return Err("Slide delta exceeds next clip duration".into());
+            }
+        } else {
+            let abs_delta = RationalTime::zero() - delta;
+            if abs_delta >= prev.duration {
+                return Err("Slide delta exceeds previous clip duration".into());
+            }
+        }
+
+        let prev = &mut track.clips[idx - 1];
+        prev.duration = prev.duration + delta;
+        prev.out_point = prev.out_point + delta;
+
+        let curr = &mut track.clips[idx];
+        curr.start_time = curr.start_time + delta;
+
+        let next = &mut track.clips[idx + 1];
+        next.start_time = next.start_time + delta;
+        next.in_point = next.in_point + delta;
+        next.duration = next.duration - delta;
+
+        Ok(())
+    }
+
+    pub fn set_clip_speed(
+        &mut self,
+        track_id: &str,
+        clip_id: &str,
+        speed: f64,
+        reverse: bool,
+    ) -> Result<(), String> {
+        if speed <= 0.0 {
+            return Err("Speed must be positive".into());
+        }
+        let track = self.tracks.iter_mut().find(|t| t.id == track_id)
+            .ok_or_else(|| format!("Track not found: {}", track_id))?;
+        let clip = track.clips.iter_mut().find(|c| c.id == clip_id)
+            .ok_or_else(|| format!("Clip not found: {}", clip_id))?;
+        clip.speed = speed;
+        clip.reverse = reverse;
+        Ok(())
+    }
+
+    pub fn link_clips(&mut self, clip1_id: &str, clip2_id: &str) -> Result<(), String> {
+        let mut found1 = false;
+        let mut found2 = false;
+        for track in &self.tracks {
+            if track.clips.iter().any(|c| c.id == clip1_id) { found1 = true; }
+            if track.clips.iter().any(|c| c.id == clip2_id) { found2 = true; }
+        }
+        if !found1 || !found2 {
+            return Err("One or both clips not found for linking".into());
+        }
+        for track in &mut self.tracks {
+            for clip in &mut track.clips {
+                if clip.id == clip1_id {
+                    clip.linked_clip_id = Some(clip2_id.to_string());
+                } else if clip.id == clip2_id {
+                    clip.linked_clip_id = Some(clip1_id.to_string());
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn unlink_clip(&mut self, clip_id: &str) -> Result<(), String> {
+        let mut linked_other = None;
+        for track in &mut self.tracks {
+            for clip in &mut track.clips {
+                if clip.id == clip_id {
+                    linked_other = clip.linked_clip_id.take();
+                }
+            }
+        }
+        if let Some(other_id) = linked_other {
+            for track in &mut self.tracks {
+                for clip in &mut track.clips {
+                    if clip.id == other_id {
+                        clip.linked_clip_id = None;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn group_clips(&mut self, clip_ids: &[&str], group_id: Option<String>) {
+        for track in &mut self.tracks {
+            for clip in &mut track.clips {
+                if clip_ids.contains(&clip.id.as_str()) {
+                    clip.group_id = group_id.clone();
+                }
+            }
+        }
+    }
+
+    pub fn add_marker(&mut self, marker: Marker) {
+        self.markers.push(marker);
+        self.markers.sort_by(|a, b| a.time.cmp(&b.time));
+    }
+
+    pub fn remove_marker(&mut self, marker_id: &str) -> bool {
+        let prev_len = self.markers.len();
+        self.markers.retain(|m| m.id != marker_id);
+        self.markers.len() < prev_len
+    }
+
+    pub fn markers(&self) -> &[Marker] {
+        &self.markers
     }
 }

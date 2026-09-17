@@ -112,20 +112,32 @@ class _AudioMixerViewState extends State<AudioMixerView> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                ChoiceChip(
-                                  label: const Text("M", style: TextStyle(fontSize: 9)),
-                                  selected: t.muted,
-                                  onSelected: (s) => setState(() => t.muted = s),
-                                  selectedColor: StudioTheme.accentRed,
-                                  visualDensity: VisualDensity.compact,
+                                GestureDetector(
+                                  onTap: () => setState(() => t.muted = !t.muted),
+                                  child: Container(
+                                    width: 28,
+                                    height: 22,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: t.muted ? StudioTheme.accentRed : StudioTheme.surfaceHighlight,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text("M", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ),
                                 ),
-                                const SizedBox(width: 4),
-                                ChoiceChip(
-                                  label: const Text("S", style: TextStyle(fontSize: 9)),
-                                  selected: t.solo,
-                                  onSelected: (s) => setState(() => t.solo = s),
-                                  selectedColor: StudioTheme.accentAmber,
-                                  visualDensity: VisualDensity.compact,
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () => setState(() => t.solo = !t.solo),
+                                  child: Container(
+                                    width: 28,
+                                    height: 22,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: t.solo ? StudioTheme.accentAmber : StudioTheme.surfaceHighlight,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text("S", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ),
                                 ),
                               ],
                             ),

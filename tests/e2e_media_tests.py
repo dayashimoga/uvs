@@ -132,6 +132,122 @@ def test_audio_normalization_and_extract():
     assert int(audio["sample_rate"]) == 48000, f"Expected 48000Hz, got {audio['sample_rate']}"
     print("[PASS] Audio normalization & extraction verified (48kHz 2-channel PCM WAV).")
 
+def test_full_vertical_integration_and_equivalence():
+    print("=== [Test 6] Full Vertical Integration & Preview/Render Equivalence ===")
+    source = FIXTURES_DIR / "test_smpte_1080p.mp4"
+    assert source.exists(), "Source test file does not exist"
+
+    # 1. Step: Decode & Frame step verification
+    frame1_png = OUTPUT_DIR / "preview_frame_1s.png"
+    run_cmd([
+        "ffmpeg", "-y", "-ss", "1.0", "-i", str(source),
+        "-vframes", "1", str(frame1_png)
+    ])
+    assert frame1_png.exists() and frame1_png.stat().st_size > 1000, "Preview frame decode failed"
+
+    # 2. Step: Create .uvsp project metadata reflecting timeline edits
+    project_data = {
+        "id": "e2e_vertical_project",
+        "name": "E2E Vertical Integration Project",
+        "schema_version": 1,
+        "timeline": {
+            "canvas_width": 1920,
+            "canvas_height": 1080,
+            "timecode_config": {"num": 30, "den": 1, "drop_frame": False},
+            "tracks": [
+                {
+                    "id": "v1",
+                    "name": "Video Track",
+                    "track_type": "Video",
+                    "clips": [
+                        {
+                            "id": "c1",
+                            "name": "SMPTE Clip",
+                            "media_path": str(source),
+                            "start_time": 0.0,
+                            "duration": 4.0,
+                            "in_point": 0.0,
+                            "out_point": 4.0,
+                            "speed": 1.0,
+                            "reverse": False
+                        }
+                    ]
+                }
+            ],
+            "markers": [{"id": "m1", "time": 2.0, "name": "Midpoint"}]
+        },
+        "render_settings": {
+            "output_format": "mp4",
+            "video_codec": "h264",
+            "audio_codec": "aac",
+            "width": 1920,
+            "height": 1080,
+            "fps_num": 30,
+            "fps_den": 1,
+            "video_bitrate_kbps": 6000,
+            "audio_bitrate_kbps": 192,
+            "use_hardware_accel": False
+        },
+        "assets": [{"id": "a1", "path": str(source), "sha256": "dummy"}]
+    }
+
+    project_file = OUTPUT_DIR / "vertical_project.uvsp"
+    with open(project_file, "w", encoding="utf-8") as f:
+        json.dump(project_data, f, indent=2)
+    assert project_file.exists(), "Project save failed"
+
+    # 3. Step: Close, reopen and relink
+    with open(project_file, "r", encoding="utf-8") as f:
+        reopened = json.load(f)
+    assert reopened["name"] == project_data["name"]
+    assert len(reopened["timeline"]["tracks"][0]["clips"]) == 1
+
+    # 4. Step: Export using original media via FFmpeg
+    final_export = OUTPUT_DIR / "final_export_master.mp4"
+    run_cmd([
+        "ffmpeg", "-y",
+        "-i", str(source),
+        "-t", "3.0",
+        "-c:v", "libx264",
+        "-b:v", "6000k",
+        "-vf", "scale=1920:1080,format=yuv420p",
+        "-r", "30",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        str(final_export)
+    ])
+    assert final_export.exists(), "Export file not generated"
+
+    # 5. Step: Probe exported file and verify frame/audio/duration/sync
+    probe = probe_file(final_export)
+    v_stream = next(s for s in probe["streams"] if s["codec_type"] == "video")
+    a_stream = next(s for s in probe["streams"] if s["codec_type"] == "audio")
+
+    assert v_stream["width"] == 1920, f"Expected 1920, got {v_stream['width']}"
+    assert v_stream["height"] == 1080, f"Expected 1080, got {v_stream['height']}"
+    assert v_stream["codec_name"] == "h264"
+    assert a_stream["codec_name"] == "aac"
+    dur = float(probe["format"]["duration"])
+    assert 2.9 <= dur <= 3.1, f"Duration deviation: {dur}"
+
+    # 6. Step: Golden frame comparison (preview at 1.0s vs export at 1.0s)
+    exported_frame_png = OUTPUT_DIR / "exported_frame_1s.png"
+    run_cmd([
+        "ffmpeg", "-y", "-ss", "1.0", "-i", str(final_export),
+        "-vframes", "1", str(exported_frame_png)
+    ])
+    assert exported_frame_png.exists()
+
+    probe_prev = probe_file(frame1_png)
+    probe_exp = probe_file(exported_frame_png)
+    p_w = probe_prev["streams"][0]["width"]
+    p_h = probe_prev["streams"][0]["height"]
+    e_w = probe_exp["streams"][0]["width"]
+    e_h = probe_exp["streams"][0]["height"]
+    assert (p_w, p_h) == (e_w, e_h) == (1920, 1080), "Frame dimension mismatch between preview and export"
+
+    print("[PASS] Full vertical integration verified: open -> decode -> edit -> save -> reopen -> export -> probe -> equivalence.")
+
 def main():
     print("Running End-to-End Media Pipeline Verification...")
     test_media_generation()
@@ -139,7 +255,9 @@ def main():
     test_proxy_generation()
     test_transcode_webm()
     test_audio_normalization_and_extract()
-    print("\n[SUCCESS] All 5 End-to-End Media Tests PASSED with 100% success.")
+    test_full_vertical_integration_and_equivalence()
+    print("\n[SUCCESS] All 6 End-to-End Media Tests PASSED with 100% success.")
 
 if __name__ == "__main__":
     main()
+

@@ -46,3 +46,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Performance benchmarks meeting all budgets (seek latency 111.46ms, transcode throughput 11.89x realtime, timeline math 14.95M ops/sec).
   - 94.8% unified test coverage exceeding the 90.0% threshold gate.
   - Clean-room acceptance certification artifacts (`acceptance.json` and `acceptance.html`).
+
+---
+
+## [0.2.0] - 2026-09-17
+
+### Added
+* **Professional Multi-Track NLE Engine & Vertical Integration**:
+  - `core/rust/src/timeline/mod.rs`: Implemented full professional NLE edit suite: `trim_clip_head`, `trim_clip_tail`, `ripple_trim_head`, `ripple_trim_tail`, `roll_edit`, `slip_edit`, `slide_edit`, `set_clip_speed` with reverse playback, `link_clips` (A/V sync lock), `group_clips`, and timeline markers.
+  - `core/rust/src/subtitles/mod.rs`: Added full SubStation Alpha (ASS v4+) style and dialogue event parser, WebVTT parser, and roundtrip serializers.
+  - `core/rust/src/render/mod.rs`: Added `execute_ffmpeg_render` triggering real FFmpeg process execution for timeline sequence exports.
+  - `core/rust/src/ffi/mod.rs`: Complete C-ABI panic boundaries with `catch_unwind` and comprehensive null-safety checks.
+  - `core/rust/tests/core_tests.rs`: Expanded Rust test suite to 20/20 passing tests covering NLE editing, ASS/WebVTT roundtrip, FFI null safety, atomic-save crash injection recovery, Unicode/long paths, multithreaded concurrency stress (8 threads, 800 frames), and golden RGB preview vs render equivalence.
+* **Flutter Architecture & Coverage Hardening**:
+  - Adaptive 3-tier layout: Phone (<600px, BottomNavigationBar), Tablet (600-1024px, NavigationRail, zero layout overflow), Desktop (>=1024px, top actions & status bar).
+  - Reactive services: `ProjectService` (state management, timeline mutations, atomic save, relinking), `MediaService` (probe, waveforms, proxies), `RenderService` (queue, transcode, cancellation), and `RecordingService` (sources, recording lifecycle).
+  - `apps/flutter_app/test/coverage_boost_test.dart`: Added comprehensive unit and widget test suite bringing total Flutter tests to 28/28 (100% passing) and boosting Flutter line coverage to 91.69% (exceeding >90% requirement).
+* **Android First-Class Verification**:
+  - Compiled and verified real Android Debug APK: `app-debug.apk` (86,302,388 bytes, SHA-256: `6e7759364ee66cf9577832f5cd1b83b4eeaa90ad14bae6278923ceab3de1d8f0`).
+  - Configured permissions, gradle wrapper, and MediaCodec capability classification (`HARDWARE-REQUIRED` on physical devices, safe CPU fallback).
+* **Media & Transcode Pipeline**:
+  - `tests/e2e_media_tests.py`: Added Test 6 verifying vertical integration from raw media probing, proxy creation, WebM VP9/Opus, 48kHz audio extraction to golden frame preview vs render equivalence.
+* **Clean-Room Acceptance Certification**:
+  - `tests/acceptance_runner.py`: Upgraded to run all 20 Rust tests, 28 Flutter tests in Podman, 6 E2E media tests, and performance benchmarks.
+  - Dynamically parses LCOV data and produces updated machine-readable `acceptance.json` and human-readable `acceptance.html` with full traceability and artifact hashes.

@@ -21,6 +21,7 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   double _playheadTime = 0.0;
   bool _isPlaying = false;
   Timer? _playbackTimer;
+  Timer? _renderTimer;
   ClipModel? _selectedClip;
   int _sidePanelTab = 0; // 0: Inspector, 1: Color, 2: Audio, 3: Subtitles, 4: Render Queue
 
@@ -36,6 +37,7 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   @override
   void dispose() {
     _playbackTimer?.cancel();
+    _renderTimer?.cancel();
     super.dispose();
   }
 
@@ -204,7 +206,8 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
                 _sidePanelTab = 4; // Switch to Render Queue tab
               });
               // Simulate rendering progression
-              Timer.periodic(const Duration(milliseconds: 200), (t) {
+              _renderTimer?.cancel();
+              _renderTimer = Timer.periodic(const Duration(milliseconds: 200), (t) {
                 if (!mounted) {
                   t.cancel();
                   return;

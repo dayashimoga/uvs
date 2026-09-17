@@ -56,6 +56,34 @@ class _MainStudioShellState extends State<MainStudioShell> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth < 1024;
+    final isDesktop = screenWidth >= 1024;
+
+    Widget bodyContent;
+    if (isTablet) {
+      bodyContent = Row(
+        children: [
+          NavigationRail(
+            selectedIndex: _currentModeIndex,
+            onDestinationSelected: (idx) => setState(() => _currentModeIndex = idx),
+            backgroundColor: StudioTheme.surface,
+            selectedIconTheme: const IconThemeData(color: StudioTheme.accentCyan),
+            unselectedIconTheme: const IconThemeData(color: StudioTheme.textSecondary),
+            labelType: NavigationRailLabelType.all,
+            destinations: List.generate(_modeTitles.length, (idx) {
+              return NavigationRailDestination(
+                icon: Icon(_modeIcons[idx]),
+                label: Text(_modeTitles[idx], style: const TextStyle(fontSize: 10)),
+              );
+            }),
+          ),
+          const VerticalDivider(width: 1, color: StudioTheme.border),
+          Expanded(child: _buildCurrentMode()),
+        ],
+      );
+    } else {
+      bodyContent = _buildCurrentMode();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -99,8 +127,8 @@ class _MainStudioShellState extends State<MainStudioShell> {
           ],
         ),
         actions: [
-          // Mode Switcher (for desktop and tablet)
-          if (!isMobile)
+          // Mode Switcher for desktop
+          if (isDesktop)
             Row(
               children: List.generate(_modeTitles.length, (idx) {
                 final isSelected = _currentModeIndex == idx;
@@ -135,7 +163,7 @@ class _MainStudioShellState extends State<MainStudioShell> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _buildCurrentMode(),
+      body: bodyContent,
       bottomNavigationBar: isMobile
           ? BottomNavigationBar(
               currentIndex: _currentModeIndex,
@@ -154,15 +182,25 @@ class _MainStudioShellState extends State<MainStudioShell> {
           : Container(
               height: 24,
               color: StudioTheme.surfaceElevated,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: const Row(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
                 children: [
-                  Text("Ready", style: TextStyle(fontSize: 11, color: StudioTheme.accentEmerald)),
-                  SizedBox(width: 16),
-                  Text("HW Accel: Active (Intel/Nvidia/VAAPI/Apple)", style: TextStyle(fontSize: 11, color: StudioTheme.textSecondary)),
-                  Spacer(),
-                  Text("Audio: 48kHz 32-bit Float | FPS: 30.00 | Schema: .uvsp v1",
-                      style: TextStyle(fontSize: 11, color: StudioTheme.textMuted)),
+                  const Text("Ready", style: TextStyle(fontSize: 11, color: StudioTheme.accentEmerald)),
+                  const SizedBox(width: 12),
+                  const Flexible(
+                    child: Text(
+                      "HW Accel: Active",
+                      style: TextStyle(fontSize: 11, color: StudioTheme.textSecondary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (isDesktop) ...[
+                    const Spacer(),
+                    const Text(
+                      "Audio: 48kHz Float | FPS: 30.00 | .uvsp v1",
+                      style: TextStyle(fontSize: 11, color: StudioTheme.textMuted),
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -227,3 +227,23 @@ pub fn build_ffmpeg_render_args(
 
     args
 }
+
+pub fn execute_ffmpeg_render(
+    input_video: &str,
+    output_path: &str,
+    settings: &RenderSettings,
+    caps: &HardwareCapabilities,
+) -> Result<String, String> {
+    let args = build_ffmpeg_render_args(input_video, output_path, settings, caps);
+    let output = std::process::Command::new("ffmpeg")
+        .args(&args)
+        .output()
+        .map_err(|e| format!("Failed to spawn ffmpeg: {}", e))?;
+
+    if output.status.success() {
+        Ok(format!("Render completed successfully to {}", output_path))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("FFmpeg failed with exit code {:?}: {}", output.status.code(), stderr))
+    }
+}
