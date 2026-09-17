@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-09-17T15:59:35.632478+00:00",
-  "commit_sha": "c9d198b034ad4012b8a28cab8b02497e4712207c",
+  "timestamp": "2026-09-17T16:01:39.016409+00:00",
+  "commit_sha": "1d8e1ce150b056b666f641434af79f970b3ca588",
   "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
   "tests": {
     "rust_core": {
@@ -23,21 +23,21 @@
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 117.51886666752398,
+          "value": 113.29386666572343,
           "unit": "ms",
           "budget": 250.0,
           "status": "PASS"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 10.704202737638266,
+          "value": 10.494988249605539,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 12073357.72069434,
+          "value": 13364338.563140402,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
@@ -47,8 +47,8 @@
   },
   "coverage": {
     "rust_core_pct": 95.2,
-    "flutter_ui_pct": 92.75,
-    "unified_pct": 93.97,
+    "flutter_ui_pct": 91.69,
+    "unified_pct": 93.44,
     "gate_threshold_pct": 90.0,
     "gate_passed": true
   },
