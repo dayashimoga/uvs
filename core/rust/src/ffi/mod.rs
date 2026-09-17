@@ -701,7 +701,7 @@ pub extern "C" fn uvs_apply_color_grading(
             ColorGradingConfig::default()
         };
 
-        for chunk in slice.chunks_exact_mut(4) {
+        for chunk in slice.as_chunks_mut::<4>().0 {
             let r_f = chunk[0] as f64 / 255.0;
             let g_f = chunk[1] as f64 / 255.0;
             let b_f = chunk[2] as f64 / 255.0;
@@ -744,7 +744,7 @@ pub extern "C" fn uvs_apply_chroma_key(
             spill_suppression: 0.5,
         };
 
-        for chunk in slice.chunks_exact_mut(4) {
+        for chunk in slice.as_chunks_mut::<4>().0 {
             let (r, g, b, a) = cfg.process_pixel(chunk[0], chunk[1], chunk[2], chunk[3]);
             chunk[0] = r;
             chunk[1] = g;

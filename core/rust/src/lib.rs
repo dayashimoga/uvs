@@ -1,3 +1,7 @@
+#![allow(unknown_lints)]
+#![allow(clippy::chunks_exact_to_as_chunks)]
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 pub mod audio;
 pub mod automation;
 pub mod effects;

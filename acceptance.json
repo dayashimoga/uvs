@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-09-17T17:41:50.701678+00:00",
-  "commit_sha": "96a1860771033a4993d25821b19a4aaa3dfa9717",
+  "timestamp": "2026-09-17T17:45:03.063672+00:00",
+  "commit_sha": "2cd093970faf5794b09f2e011e8c0dcf6dfb3c25",
   "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
   "tests": {
     "rust_core": {
@@ -24,28 +24,28 @@
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 119.33546664658934,
+          "value": 105.6027333252132,
           "unit": "ms",
           "budget": 250.0,
           "status": "PASS"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 11.211051406134072,
+          "value": 11.459922502572821,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 9705439.879179347,
+          "value": 11886225.048185674,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
         },
         {
           "metric": "intel_qsv_speed_factor",
-          "value": 3.1062228827189,
+          "value": 2.0079443313576264,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS",
@@ -227,8 +227,8 @@
     {
       "name": "universal_video_studio_windows_x64.zip",
       "type": "Desktop Release Bundle (x64 DLL + Assets)",
-      "sha256": "3940f8aa59f70f3cff8428f973ddb2d31d4dd230af67fcd53f3e0ec29edcec9a",
-      "size_bytes": 825366
+      "sha256": "0c6cb5c7b23c692644f07c0282d6096f99b2a3c87db9f9fd2a65677581a5d02e",
+      "size_bytes": 824630
     },
     {
       "name": "uvs_sbom.json",
