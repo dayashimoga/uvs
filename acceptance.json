@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-09-17T17:27:10.285903+00:00",
-  "commit_sha": "6ec9b0b28fc03a316e5f1233206dbd463bb0957a",
+  "timestamp": "2026-09-17T17:27:53.850334+00:00",
+  "commit_sha": "6c666c0f47647c8bee8028017a7fc8258caf3917",
   "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
   "tests": {
     "rust_core": {
@@ -24,28 +24,28 @@
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 119.5532000080372,
+          "value": 112.12326667737216,
           "unit": "ms",
           "budget": 250.0,
           "status": "PASS"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 12.199261518595883,
+          "value": 11.511175624773374,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 12474583.067831933,
+          "value": 13628620.063033959,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
         },
         {
           "metric": "intel_qsv_speed_factor",
-          "value": 3.1793623772961537,
+          "value": 2.8757069835603772,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS",
