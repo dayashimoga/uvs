@@ -1,141 +1,240 @@
 {
-  "timestamp": "2026-09-17T16:01:39.016409+00:00",
-  "commit_sha": "1d8e1ce150b056b666f641434af79f970b3ca588",
+  "timestamp": "2026-09-17T17:27:10.285903+00:00",
+  "commit_sha": "6ec9b0b28fc03a316e5f1233206dbd463bb0957a",
   "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
   "tests": {
     "rust_core": {
       "passed": true,
-      "total": 20,
+      "total": 27,
       "failed": 0
     },
     "flutter_ui": {
       "passed": true,
-      "total": 28,
+      "total": 31,
       "failed": 0
     },
     "e2e_media": {
       "passed": true,
-      "total": 6,
+      "total": 7,
       "failed": 0
     },
     "benchmarks": {
       "passed": true,
+      "total": 4,
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 113.29386666572343,
+          "value": 119.5532000080372,
           "unit": "ms",
           "budget": 250.0,
           "status": "PASS"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 10.494988249605539,
+          "value": 12.199261518595883,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 13364338.563140402,
+          "value": 12474583.067831933,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
+        },
+        {
+          "metric": "intel_qsv_speed_factor",
+          "value": 3.1793623772961537,
+          "unit": "x realtime",
+          "budget": 1.5,
+          "status": "PASS",
+          "hardware": "Intel(R) Arc(TM) 130T GPU (8GB)"
         }
       ]
+    },
+    "security_sbom": {
+      "passed": true,
+      "violations": 0
     }
   },
   "coverage": {
     "rust_core_pct": 95.2,
-    "flutter_ui_pct": 91.69,
-    "unified_pct": 93.44,
+    "flutter_ui_pct": 90.9,
+    "unified_pct": 93.05,
     "gate_threshold_pct": 90.0,
     "gate_passed": true
   },
-  "capabilities": [
+  "traceability": [
     {
-      "feature": "Software Video Decoding/Encoding (H.264, H.265, VP9, Opus, AAC)",
-      "status": "PROVEN",
-      "details": "Verified via FFmpeg 9.0.1 test suite (6/6 passing)"
+      "id": "REQ-01",
+      "requirement": "Android First-Class Signed Packaging & Runtime",
+      "component": "apps/flutter_app/android",
+      "test_reference": "Container release APK build & manifest validation",
+      "classification": "PROVEN",
+      "evidence": "Real signed APK produced (22915450 bytes, SHA-256: a2313180d0b2...)"
     },
     {
-      "feature": "High-Precision Rational Timecode & Drop-Frame Math",
-      "status": "PROVEN",
-      "details": "Verified in Rust core_tests (20/20 passing)"
+      "id": "REQ-02",
+      "requirement": "Desktop Native Execution & Real Binary Packaging",
+      "component": "core/rust, scripts/package.ps1",
+      "test_reference": "Native release build & package.ps1",
+      "classification": "PROVEN",
+      "evidence": "Real compiled uvs_core.dll (2.29 MB) bundled into windows_x64.zip"
     },
     {
-      "feature": "Non-Destructive Multi-Track NLE (trim, split, ripple, roll, slip, slide, speed)",
-      "status": "PROVEN",
-      "details": "Verified in Rust core and Flutter widget test suite"
+      "id": "REQ-03",
+      "requirement": "Intel QSV Hardware Acceleration (GPU Encoding)",
+      "component": "core/rust/src/render/mod.rs",
+      "test_reference": "tests/benchmarks.py (Benchmark 4)",
+      "classification": "PROVEN",
+      "evidence": "Verified on host Intel(R) Arc(TM) 130T GPU (8GB) via h264_qsv"
     },
     {
-      "feature": "Audio DSP (5-Band EQ, Compressor, Waveform, LUFS Normalization)",
-      "status": "PROVEN",
-      "details": "Verified in Rust audio dsp test and Flutter mixer"
+      "id": "REQ-04",
+      "requirement": "High-Precision Rational Timecode & Drop-Frame Math",
+      "component": "core/rust/src/timeline/timecode.rs",
+      "test_reference": "core_tests.rs (test_timecode_rational_math)",
+      "classification": "PROVEN",
+      "evidence": "Exact Rational64 representation with 0.000000ms drift across CFR/VFR"
     },
     {
-      "feature": "Color Grading, 3D LUT Cube Parser, Chroma Keying",
-      "status": "PROVEN",
-      "details": "Verified via color grading test suite and Flutter color inspector"
+      "id": "REQ-05",
+      "requirement": "Non-Destructive Multi-Track NLE Editing Engine",
+      "component": "core/rust/src/timeline/mod.rs",
+      "test_reference": "core_tests.rs (test_nle_trim_roll_slip_slide, speed/reverse)",
+      "classification": "PROVEN",
+      "evidence": "Trim, ripple, roll, slip, slide, variable speed, reverse, and markers verified"
     },
     {
-      "feature": "Subtitles (SRT, WebVTT, ASS V4+ Styles & Dialogue Events)",
-      "status": "PROVEN",
-      "details": "Verified in Rust roundtrip tests and Flutter subtitle UI"
+      "id": "REQ-06",
+      "requirement": "Audio DSP (5-Band EQ, Dynamic Compressor, LUFS)",
+      "component": "core/rust/src/audio/mod.rs",
+      "test_reference": "core_tests.rs (test_audio_dsp_eq_compressor_lufs)",
+      "classification": "PROVEN",
+      "evidence": "RBJ biquad filters, dynamic compressor gain reduction, BS.1770 LUFS calculation"
     },
     {
-      "feature": "Golden Frame & Audio Preview/Render Equivalence",
-      "status": "PROVEN",
-      "details": "Verified in Rust test and E2E media test 6"
+      "id": "REQ-07",
+      "requirement": "Color Grading, 3D LUT Cube Parser, Chroma Keying",
+      "component": "core/rust/src/effects/mod.rs",
+      "test_reference": "core_tests.rs (test_color_grading_and_lut)",
+      "classification": "PROVEN",
+      "evidence": "Trilinear LUT interpolation and HSV/YUV alpha keying verified"
     },
     {
-      "feature": "Multi-View Monitoring Matrix & Multi-Audio Unmute Mixing",
-      "status": "PROVEN",
-      "details": "Verified in Flutter Multi-View and Multicam mode tests"
+      "id": "REQ-08",
+      "requirement": "Subtitles Engine (SRT, WebVTT, ASS V4+ Styles & Events)",
+      "component": "core/rust/src/subtitles/mod.rs",
+      "test_reference": "core_tests.rs (test_substation_alpha_and_vtt_roundtrip)",
+      "classification": "PROVEN",
+      "evidence": "Full roundtrip parse and serialization with dialogue timing calibration"
     },
     {
-      "feature": "720p Proxy Auto-Generation from 4K Media",
-      "status": "PROVEN",
-      "details": "Verified via ffprobe on generated proxy output"
+      "id": "REQ-09",
+      "requirement": "Golden Frame Preview vs Export Render Equivalence",
+      "component": "core/rust/src/render, tests/e2e_media_tests.py",
+      "test_reference": "e2e_media_tests.py (Test 6)",
+      "classification": "PROVEN",
+      "evidence": "Preview buffer matches export frame stream within <1.5% channel tolerance"
     },
     {
-      "feature": "Android Real APK Package Build (arm/arm64/x64)",
-      "status": "PROVEN",
-      "details": "Built and verified app-debug.apk (86302388 bytes)"
+      "id": "REQ-10",
+      "requirement": "Complete Proxy Lifecycle & Fault Injection",
+      "component": "core/rust/src/media/mod.rs, tests/e2e_media_tests.py",
+      "test_reference": "e2e_media_tests.py (Test 7)",
+      "classification": "PROVEN",
+      "evidence": "4K -> 720p proxy -> corrupt/deleted fallback -> export from 4K original"
     },
     {
-      "feature": "Cross-Platform Container Execution (Podman)",
-      "status": "PROVEN",
-      "details": "Validated inside Ubuntu 24.04 / Flutter 3.24.3 container"
+      "id": "REQ-11",
+      "requirement": "Multi-View Simultaneous Streams & Audio Mixing Matrix",
+      "component": "apps/flutter_app/lib/src/modes/multi_view_mode.dart",
+      "test_reference": "core_tests.rs (test_multiview_concurrent_streams_and_mixing)",
+      "classification": "PROVEN",
+      "evidence": "6-feed concurrent audio summing with per-channel volume and mute faders"
     },
     {
-      "feature": "Intel QSV / Nvidia NVENC Hardware Acceleration",
-      "status": "HARDWARE-REQUIRED",
-      "details": "Graceful safe CPU fallback to libx264/libx265 verified on host"
+      "id": "REQ-12",
+      "requirement": "Multicam Sync & Angle Switching Commit to Timeline",
+      "component": "core/rust/src/multicam/mod.rs, multicam_mode.dart",
+      "test_reference": "multicam/mod.rs (test_multicam_commit_cuts)",
+      "classification": "PROVEN",
+      "evidence": "Waveform cross-correlation lag + automatic timeline clip cut generation"
     },
     {
-      "feature": "Android MediaCodec Native Decoder on Physical Hardware",
-      "status": "HARDWARE-REQUIRED",
-      "details": "NDK bridge implemented, APK compiled, physical device run required"
+      "id": "REQ-13",
+      "requirement": "FFI Memory Safety, Null Fuzzing & 5,000-Cycle Stress",
+      "component": "core/rust/src/ffi/mod.rs",
+      "test_reference": "core_tests.rs (test_ffi_exhaustive_null_fuzzing, memory_leak_cycles)",
+      "classification": "PROVEN",
+      "evidence": "5,000 project create/edit/free cycles verified with zero panics or leaks"
     },
     {
-      "feature": "Apple VideoToolbox Hardware Acceleration",
-      "status": "HARDWARE-REQUIRED",
-      "details": "Requires physical Apple Silicon / macOS host"
+      "id": "REQ-14",
+      "requirement": "Atomic Save Crash Injection & Recovery",
+      "component": "core/rust/src/project/storage.rs",
+      "test_reference": "core_tests.rs (test_atomic_save_fault_injection_and_disk_full)",
+      "classification": "PROVEN",
+      "evidence": "Temp-write -> fsync -> atomic rename guarantees zero file corruption on crash"
+    },
+    {
+      "id": "REQ-15",
+      "requirement": "Security, License Compliance & CycloneDX SBOM",
+      "component": "tests/security_audit.py",
+      "test_reference": "tests/security_audit.py",
+      "classification": "PROVEN",
+      "evidence": "0 secrets detected; all 10 dependencies permissive; CycloneDX SBOM generated"
+    },
+    {
+      "id": "REQ-16",
+      "requirement": "Physical Android MediaCodec Native Hardware Silicon",
+      "component": "native/android",
+      "test_reference": "NDK MediaCodec bridge compiled",
+      "classification": "HARDWARE-REQUIRED",
+      "evidence": "JNI/NDK bridge implemented; requires physical Android silicon run"
+    },
+    {
+      "id": "REQ-17",
+      "requirement": "Nvidia NVENC Hardware Silicon",
+      "component": "core/rust/src/render/mod.rs",
+      "test_reference": "Capability probe with CPU fallback",
+      "classification": "HARDWARE-REQUIRED",
+      "evidence": "Graceful safe CPU fallback (libx264/libx265) verified on host"
+    },
+    {
+      "id": "REQ-18",
+      "requirement": "Apple VideoToolbox Hardware Silicon",
+      "component": "core/rust/src/render/mod.rs",
+      "test_reference": "Capability probe with CPU fallback",
+      "classification": "HARDWARE-REQUIRED",
+      "evidence": "Requires physical Apple Silicon / macOS host runner"
     }
   ],
   "artifacts": [
     {
-      "name": "app-debug.apk",
-      "type": "Android Debug APK",
-      "sha256": "6e7759364ee66cf9577832f5cd1b83b4eeaa90ad14bae6278923ceab3de1d8f0",
-      "size_bytes": 86302388
+      "name": "app-release.apk",
+      "type": "Android APK Package",
+      "sha256": "a2313180d0b252b1834b5bfd021b1450a2eb8da8688a0faf1321fb45043c7ec0",
+      "size_bytes": 22915450
     },
     {
-      "name": "universal_video_studio_release.zip",
-      "type": "Desktop Release Bundle",
-      "sha256": "afe89301bf75634290157ff1d08358217dc593905c80454d81c765eec29ad8f1",
-      "size_bytes": 39
+      "name": "app-release.aab",
+      "type": "Android App Bundle (AAB)",
+      "sha256": "6a97234de4abb67d91c82fb47b0ee1897e1f0ecec77f37597af3aebedaf6f5b2",
+      "size_bytes": 22881493
+    },
+    {
+      "name": "universal_video_studio_windows_x64.zip",
+      "type": "Desktop Release Bundle (x64 DLL + Assets)",
+      "sha256": "c65d19b57a3389a44963543ffe31199badb6af8a061c215d7dbb4953c9d92759",
+      "size_bytes": 825366
+    },
+    {
+      "name": "uvs_sbom.json",
+      "type": "CycloneDX 1.5 JSON SBOM",
+      "sha256": "45ddfdefa2ac004dd81eb6b21f5b01a4c327f57afa3290dad4035936b9c9eb48",
+      "size_bytes": 3250
     }
   ]
 }

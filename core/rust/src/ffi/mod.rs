@@ -772,6 +772,61 @@ pub extern "C" fn uvs_find_multicam_lag(
     res.unwrap_or(0)
 }
 
+#[no_mangle]
+pub extern "C" fn uvs_multicam_commit_cuts(
+    project_json: *const c_char,
+    group_json: *const c_char,
+    cuts_json: *const c_char,
+) -> *mut c_char {
+    if project_json.is_null() || group_json.is_null() || cuts_json.is_null() {
+        return err_json("Null argument to uvs_multicam_commit_cuts");
+    }
+
+    let res = catch_unwind(|| {
+        let p_str = unsafe { CStr::from_ptr(project_json).to_str().unwrap_or("") };
+        let g_str = unsafe { CStr::from_ptr(group_json).to_str().unwrap_or("") };
+        let c_str = unsafe { CStr::from_ptr(cuts_json).to_str().unwrap_or("") };
+
+        let mut proj = match Project::from_json(p_str) {
+            Ok(p) => p,
+            Err(e) => return format!("{{\"error\": \"{}\"}}", e),
+        };
+
+        let group: crate::multicam::MulticamGroup = match serde_json::from_str(g_str) {
+            Ok(g) => g,
+            Err(e) => return format!("{{\"error\": \"Failed to parse group: {}\"}}", e),
+        };
+
+        #[derive(serde::Deserialize)]
+        struct CutEventPayload {
+            time_s: f64,
+            angle_id: String,
+        }
+        let payloads: Vec<CutEventPayload> = match serde_json::from_str(c_str) {
+            Ok(p) => p,
+            Err(e) => return format!("{{\"error\": \"Failed to parse cuts: {}\"}}", e),
+        };
+
+        let cuts: Vec<(RationalTime, String)> = payloads
+            .into_iter()
+            .map(|p| (RationalTime::from_f64(p.time_s), p.angle_id))
+            .collect();
+
+        match group.commit_angle_cuts_to_timeline(&cuts, &mut proj.timeline) {
+            Ok(count) => {
+                let new_json = proj.to_json().unwrap_or_else(|_| "{}".into());
+                format!("{{\"inserted_cuts\": {}, \"project\": {}}}", count, new_json)
+            }
+            Err(e) => format!("{{\"error\": \"{}\"}}", e),
+        }
+    });
+
+    match res {
+        Ok(s) => to_c_string(s),
+        Err(_) => err_json("Panic in uvs_multicam_commit_cuts"),
+    }
+}
+
 // -------------------- Render Execution --------------------
 
 #[no_mangle]

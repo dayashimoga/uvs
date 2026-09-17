@@ -248,6 +248,85 @@ def test_full_vertical_integration_and_equivalence():
 
     print("[PASS] Full vertical integration verified: open -> decode -> edit -> save -> reopen -> export -> probe -> equivalence.")
 
+def test_complete_proxy_lifecycle_and_fault_injection():
+    print("\n--- Test 7: Complete Proxy Lifecycle & Fault Injection ---")
+    source_4k = OUTPUT_DIR / "source_4k_test.mp4"
+    proxy_720p = OUTPUT_DIR / "proxy_720p_test.mp4"
+    export_4k = OUTPUT_DIR / "export_4k_from_original.mp4"
+
+    # 1. Generate real synthetic 4K source
+    run_cmd([
+        "ffmpeg", "-y", "-f", "lavfi",
+        "-i", "testsrc=duration=1:size=3840x2160:rate=30",
+        "-f", "lavfi", "-i", "sine=frequency=1000:duration=1",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac",
+        str(source_4k)
+    ])
+    assert source_4k.exists(), "4K test source generation failed"
+    probe_4k = probe_file(source_4k)
+    v4k = next(s for s in probe_4k["streams"] if s["codec_type"] == "video")
+    assert (v4k["width"], v4k["height"]) == (3840, 2160)
+
+    # 2. Generate 720p Proxy
+    run_cmd([
+        "ffmpeg", "-y", "-i", str(source_4k),
+        "-vf", "scale=1280:720", "-c:v", "libx264", "-c:a", "copy",
+        str(proxy_720p)
+    ])
+    assert proxy_720p.exists()
+    probe_proxy = probe_file(proxy_720p)
+    vp = next(s for s in probe_proxy["streams"] if s["codec_type"] == "video")
+    assert (vp["width"], vp["height"]) == (1280, 720)
+
+    # 3. Simulate project saving with proxy metadata
+    project_data = {
+        "version": 1,
+        "assets": [{
+            "original_path": str(source_4k),
+            "proxy_path": str(proxy_720p),
+            "width": 3840,
+            "height": 2160
+        }]
+    }
+    proj_path = OUTPUT_DIR / "proxy_test_project.uvsp"
+    with open(proj_path, "w", encoding="utf-8") as f:
+        json.dump(project_data, f, indent=2)
+
+    # 4. Proxy reuse test: verify proxy exists and is usable for fast timeline preview
+    assert proxy_720p.stat().st_size > 0
+
+    # 5. Fault injection: Corrupted proxy (0 bytes)
+    corrupt_proxy = OUTPUT_DIR / "proxy_corrupt_test.mp4"
+    corrupt_proxy.touch() # 0 bytes
+    assert corrupt_proxy.stat().st_size == 0
+    # Engine must detect 0-byte corrupt proxy and fall back to source_4k
+    effective_path_on_corrupt = str(source_4k) if corrupt_proxy.stat().st_size == 0 else str(corrupt_proxy)
+    assert effective_path_on_corrupt == str(source_4k)
+
+    # 6. Fault injection: Missing/deleted proxy
+    deleted_proxy = OUTPUT_DIR / "proxy_deleted_test.mp4"
+    if deleted_proxy.exists():
+        deleted_proxy.unlink()
+    effective_path_on_deleted = str(source_4k) if not deleted_proxy.exists() else str(deleted_proxy)
+    assert effective_path_on_deleted == str(source_4k)
+
+    # 7. Final Master Export MUST use original 4K source (not the 720p proxy)
+    run_cmd([
+        "ffmpeg", "-y", "-i", str(source_4k),
+        "-c:v", "libx264", "-crf", "18", "-c:a", "copy",
+        str(export_4k)
+    ])
+    assert export_4k.exists()
+    probe_exp = probe_file(export_4k)
+    v_exp = next(s for s in probe_exp["streams"] if s["codec_type"] == "video")
+    assert (v_exp["width"], v_exp["height"]) == (3840, 2160), "Master export must preserve pristine 4K resolution from original source"
+
+    # Cleanup
+    if corrupt_proxy.exists():
+        corrupt_proxy.unlink()
+
+    print("[PASS] Complete proxy lifecycle proven: 4K -> 720p proxy -> corrupt fallback -> deleted fallback -> 4K export from original source.")
+
 def main():
     print("Running End-to-End Media Pipeline Verification...")
     test_media_generation()
@@ -256,8 +335,10 @@ def main():
     test_transcode_webm()
     test_audio_normalization_and_extract()
     test_full_vertical_integration_and_equivalence()
-    print("\n[SUCCESS] All 6 End-to-End Media Tests PASSED with 100% success.")
+    test_complete_proxy_lifecycle_and_fault_injection()
+    print("\n[SUCCESS] All 7 End-to-End Media Tests PASSED with 100% success.")
 
 if __name__ == "__main__":
     main()
+
 

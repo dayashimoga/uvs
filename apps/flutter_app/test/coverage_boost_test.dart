@@ -645,5 +645,61 @@ void main() {
       render.clearCompleted();
       expect(render.jobs.where((j) => j.id == job.id).isEmpty, isTrue);
     });
+
+    test('RecordingService capability detection and ffmpeg command builder', () {
+      final rec = RecordingService.instance;
+      for (final src in RecordingSource.values) {
+        rec.isSourceSupported(src);
+        rec.getCapabilityWarning(src);
+      }
+      final cmd = rec.buildFfmpegCaptureCommand('output_test.mp4');
+      expect(cmd.first, 'ffmpeg');
+      expect(cmd.last, 'output_test.mp4');
+    });
+
+    test('ProjectService insertMulticamCuts creates timeline clips', () {
+      final ps = ProjectService.instance;
+      ps.newProject(name: 'MulticamCutTest');
+      ps.insertMulticamCuts([
+        {'name': 'Angle 1', 'media_path': 'cam1.mp4', 'time_s': 0.0},
+        {'name': 'Angle 2', 'media_path': 'cam2.mp4', 'time_s': 4.0},
+        {'name': 'Angle 3', 'media_path': 'cam3.mp4', 'time_s': 8.0},
+      ]);
+      final timeline = ps.project['timeline'] as Map<String, dynamic>;
+      final tracks = timeline['tracks'] as List;
+      expect(tracks.isNotEmpty, isTrue);
+    });
+
+    testWidgets('MulticamModeView taps all 4 angles and commits cuts to timeline', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: MulticamModeView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (int i = 1; i <= 4; i++) {
+        final camText = find.text("CAM $i");
+        expect(camText, findsOneWidget);
+        await tester.tap(camText);
+        await tester.pumpAndSettle();
+      }
+
+      ScaffoldMessenger.of(tester.element(find.byType(Scaffold))).clearSnackBars();
+      await tester.pumpAndSettle();
+
+      final insertBtn = find.textContaining("Insert Cuts to Timeline");
+      expect(insertBtn, findsOneWidget);
+      await tester.tap(insertBtn);
+      await tester.pumpAndSettle();
+      expect(find.textContaining("Successfully committed"), findsOneWidget);
+    });
   });
 }
+

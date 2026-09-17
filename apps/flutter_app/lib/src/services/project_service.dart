@@ -138,6 +138,32 @@ class ProjectService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void insertMulticamCuts(List<Map<String, dynamic>> cuts) {
+    if (cuts.isEmpty) return;
+    final timeline = _project['timeline'] as Map<String, dynamic>? ?? {};
+    final tracks = (timeline['tracks'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    var vTrack = tracks.firstWhere((t) => t['track_type'] == 'Video', orElse: () => {});
+    if (vTrack.isEmpty) {
+      addTrack('V1', 'Video', 0);
+    }
+    final updatedTracks = ((_project['timeline']?['tracks'] as List?)?.cast<Map<String, dynamic>>() ?? []);
+    final vTrackId = updatedTracks.firstWhere((t) => t['track_type'] == 'Video')['id'] as String? ?? 'track-v1';
+
+    for (int i = 0; i < cuts.length; i++) {
+      final cut = cuts[i];
+      final start = (cut['time_s'] as num?)?.toDouble() ?? (i * 4.0);
+      final dur = (i + 1 < cuts.length)
+          ? (((cuts[i + 1]['time_s'] as num?)?.toDouble() ?? (start + 4.0)) - start)
+          : 4.0;
+      final name = cut['name'] as String? ?? 'Angle Cut ${i + 1}';
+      final path = cut['media_path'] as String? ?? 'media_${i + 1}.mp4';
+      addClip(vTrackId, name, path, start, dur > 0 ? dur : 4.0);
+    }
+    _isDirty = true;
+    notifyListeners();
+  }
+
+
   @override
   void dispose() {
     _autosaveTimer?.cancel();

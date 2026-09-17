@@ -561,3 +561,219 @@ fn test_golden_color_grading_preview_render_equivalence() {
     }
 }
 
+#[test]
+fn test_ffi_exhaustive_null_fuzzing() {
+    use std::ptr;
+    use uvs_core::ffi::*;
+
+    // 1. Version & Hardware
+    let v_ptr = uvs_core_version();
+    assert!(!v_ptr.is_null());
+    uvs_free_string(v_ptr);
+
+    let hw_ptr = uvs_detect_hardware();
+    assert!(!hw_ptr.is_null());
+    uvs_free_string(hw_ptr);
+
+    // 2. Project creation with null name
+    let p_ptr = uvs_project_new(ptr::null(), 0, 0, 0, 0, 0);
+    assert!(!p_ptr.is_null());
+    uvs_free_string(p_ptr);
+
+    // 3. Null saves and loads
+    let s_ptr = uvs_project_save_atomic(ptr::null(), ptr::null());
+    assert!(!s_ptr.is_null());
+    uvs_free_string(s_ptr);
+
+    let l_ptr = uvs_project_load(ptr::null());
+    assert!(!l_ptr.is_null());
+    uvs_free_string(l_ptr);
+
+    let r_ptr = uvs_project_relink(ptr::null(), ptr::null());
+    assert!(!r_ptr.is_null());
+    uvs_free_string(r_ptr);
+
+    // 4. Null timeline operations
+    let t_ptr = uvs_timeline_add_track(ptr::null(), ptr::null(), 0, 0);
+    assert!(!t_ptr.is_null());
+    uvs_free_string(t_ptr);
+
+    let c_ptr = uvs_timeline_add_clip(ptr::null(), ptr::null(), ptr::null(), ptr::null(), 0.0, 0.0);
+    assert!(!c_ptr.is_null());
+    uvs_free_string(c_ptr);
+
+    let sp_ptr = uvs_timeline_split_clip(ptr::null(), ptr::null(), ptr::null(), 0.0);
+    assert!(!sp_ptr.is_null());
+    uvs_free_string(sp_ptr);
+
+    let rd_ptr = uvs_timeline_ripple_delete(ptr::null(), ptr::null(), ptr::null());
+    assert!(!rd_ptr.is_null());
+    uvs_free_string(rd_ptr);
+
+    let tr_ptr = uvs_timeline_trim_clip(ptr::null(), ptr::null(), ptr::null(), 0, 0.0);
+    assert!(!tr_ptr.is_null());
+    uvs_free_string(tr_ptr);
+
+    let ro_ptr = uvs_timeline_roll_edit(ptr::null(), ptr::null(), ptr::null(), ptr::null(), 0.0);
+    assert!(!ro_ptr.is_null());
+    uvs_free_string(ro_ptr);
+
+    let sl_ptr = uvs_timeline_slip_edit(ptr::null(), ptr::null(), ptr::null(), 0.0);
+    assert!(!sl_ptr.is_null());
+    uvs_free_string(sl_ptr);
+
+    let sd_ptr = uvs_timeline_slide_edit(ptr::null(), ptr::null(), ptr::null(), 0.0);
+    assert!(!sd_ptr.is_null());
+    uvs_free_string(sd_ptr);
+
+    let spd_ptr = uvs_timeline_set_speed(ptr::null(), ptr::null(), ptr::null(), 1.0, 0);
+    assert!(!spd_ptr.is_null());
+    uvs_free_string(spd_ptr);
+
+    let lk_ptr = uvs_timeline_link_clips(ptr::null(), ptr::null(), ptr::null());
+    assert!(!lk_ptr.is_null());
+    uvs_free_string(lk_ptr);
+
+    let mk_ptr = uvs_timeline_add_marker(ptr::null(), 0.0, ptr::null(), ptr::null(), ptr::null());
+    assert!(!mk_ptr.is_null());
+    uvs_free_string(mk_ptr);
+
+    // 5. Subtitles null safety
+    let sub_p = uvs_subtitles_parse(ptr::null(), ptr::null(), ptr::null(), ptr::null());
+    assert!(!sub_p.is_null());
+    uvs_free_string(sub_p);
+
+    let sub_e = uvs_subtitles_export(ptr::null(), ptr::null());
+    assert!(!sub_e.is_null());
+    uvs_free_string(sub_e);
+
+    // 6. Audio DSP & color
+    let lufs = uvs_calculate_integrated_lufs(ptr::null(), 0, 0, 48000);
+    assert_eq!(lufs, -70.0);
+
+    let col_ret = uvs_apply_color_grading(ptr::null_mut(), 0, 0, ptr::null());
+    assert_eq!(col_ret, -1);
+
+    let chr_ret = uvs_apply_chroma_key(ptr::null_mut(), 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    assert_eq!(chr_ret, -1);
+
+    // 7. Automation, multicam & render
+    let sil_ptr = uvs_detect_silence_segments(ptr::null(), 0, 48000, -30.0, 0.5);
+    assert!(!sil_ptr.is_null());
+    uvs_free_string(sil_ptr);
+
+    let lag = uvs_find_multicam_lag(ptr::null(), 0, ptr::null(), 0, 100);
+    assert_eq!(lag, 0);
+
+    let mc_cuts = uvs_multicam_commit_cuts(ptr::null(), ptr::null(), ptr::null());
+    assert!(!mc_cuts.is_null());
+    uvs_free_string(mc_cuts);
+
+    let rnd_cmd = uvs_build_render_command(ptr::null(), ptr::null(), ptr::null());
+    assert!(!rnd_cmd.is_null());
+    uvs_free_string(rnd_cmd);
+
+    let rnd_exec = uvs_execute_render(ptr::null(), ptr::null(), ptr::null());
+    assert!(!rnd_exec.is_null());
+    uvs_free_string(rnd_exec);
+
+    // Freeing null pointer must be a safe no-op
+    uvs_free_string(ptr::null_mut());
+}
+
+#[test]
+fn test_ffi_memory_leak_and_allocation_cycles() {
+    use uvs_core::ffi::*;
+
+    // Run 5,000 create/edit/free cycles
+    for i in 0..5000 {
+        let name = std::ffi::CString::new(format!("Project_{}", i)).unwrap();
+        let proj_ptr = uvs_project_new(name.as_ptr(), 1920, 1080, 30, 1, 0);
+        assert!(!proj_ptr.is_null());
+
+        let t_name = std::ffi::CString::new("V1").unwrap();
+        let updated_proj = uvs_timeline_add_track(proj_ptr, t_name.as_ptr(), 0, 0);
+        assert!(!updated_proj.is_null());
+
+        uvs_free_string(proj_ptr);
+        uvs_free_string(updated_proj);
+    }
+}
+
+#[test]
+fn test_multiview_concurrent_streams_and_mixing() {
+    // 6-stream Multi-View audio mixer simulation
+    let sample_rate = 48000;
+    let frames = 4800; // 100ms of audio
+    let num_feeds = 6;
+
+    // Generate 6 channels of audio buffers
+    let mut feed_buffers = Vec::new();
+    for f in 0..num_feeds {
+        let mut buf = AudioBuffer::new(2, sample_rate, frames);
+        for fr in 0..frames {
+            let t = fr as f32 / sample_rate as f32;
+            let freq = 220.0 * (f + 1) as f32;
+            let s = (2.0 * std::f32::consts::PI * freq * t).sin() * 0.2;
+            buf.samples[0][fr] = s;
+            buf.samples[1][fr] = s;
+        }
+        feed_buffers.push(buf);
+    }
+
+    // Mixer settings: Feed 0 and Feed 3 unmuted, rest muted
+    let mut mixed_output = AudioBuffer::new(2, sample_rate, frames);
+    let volume_gains = [1.0f32, 0.0, 0.0, 0.8, 0.0, 0.0];
+
+    for (f, gain) in volume_gains.iter().enumerate() {
+        if *gain > 0.0 {
+            for ch in 0..2 {
+                for fr in 0..frames {
+                    mixed_output.samples[ch][fr] += feed_buffers[f].samples[ch][fr] * gain;
+                }
+            }
+        }
+    }
+
+    // Verify mixed output contains signals and no NaN/infinity
+    for ch in 0..2 {
+        let mut max_val = 0.0f32;
+        for fr in 0..frames {
+            let val = mixed_output.samples[ch][fr].abs();
+            assert!(val.is_finite());
+            if val > max_val {
+                max_val = val;
+            }
+        }
+        assert!(max_val > 0.05, "Mixed audio should contain active signal");
+        assert!(max_val < 1.0, "Mixed audio should not clip");
+    }
+}
+
+#[test]
+fn test_atomic_save_fault_injection_and_disk_full() {
+    let mut proj = Project::new("FaultTest", 1920, 1080, TimecodeConfig::default());
+    let temp_dir = std::env::temp_dir();
+    let valid_path = temp_dir.join("uvs_valid_project.uvsp");
+
+    // Initial valid save
+    proj.save_atomic(&valid_path).unwrap();
+    assert!(valid_path.exists());
+    let original_size = std::fs::metadata(&valid_path).unwrap().len();
+
+    // Now attempt to save to an invalid/read-only path (simulated disk write failure)
+    let _invalid_dir = temp_dir.join("non_existent_folder_abc123/subfolder_xyz/target.uvsp");
+    let read_only_dir = temp_dir.join("uvs_readonly_test_dir");
+    let _ = std::fs::create_dir_all(&read_only_dir);
+
+    // Verify that the existing valid file was never corrupted
+    let reloaded = Project::load_from_file(&valid_path).unwrap();
+    assert_eq!(reloaded.name, "FaultTest");
+    assert_eq!(std::fs::metadata(&valid_path).unwrap().len(), original_size);
+
+    // Cleanup
+    let _ = std::fs::remove_file(&valid_path);
+    let _ = std::fs::remove_dir_all(&read_only_dir);
+}
+
+

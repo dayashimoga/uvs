@@ -56,9 +56,66 @@ class RecordingService extends ChangeNotifier {
     return outputPath;
   }
 
+  bool isSourceSupported(RecordingSource source) {
+    if (kIsWeb) {
+      return source != RecordingSource.systemAudio;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+      case TargetPlatform.fuchsia:
+        return true;
+      case TargetPlatform.android:
+        // System audio capture on Android requires API 29+ (Android 10+)
+        return true;
+      case TargetPlatform.iOS:
+        return source != RecordingSource.systemAudio;
+    }
+  }
+
+  String? getCapabilityWarning(RecordingSource source) {
+    if (source == RecordingSource.systemAudio) {
+      if (defaultTargetPlatform == TargetPlatform.macOS) {
+        return "System audio recording on macOS requires an aggregate virtual audio driver.";
+      } else if (defaultTargetPlatform == TargetPlatform.android) {
+        return "System audio requires Android 10+ and app-level audio playback consent.";
+      }
+    }
+    return null;
+  }
+
+  List<String> buildFfmpegCaptureCommand(String outputPath) {
+    final args = <String>['ffmpeg', '-y'];
+
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      if (_activeSources.contains(RecordingSource.screen)) {
+        args.addAll(['-f', 'gdigrab', '-framerate', '30', '-i', 'desktop']);
+      }
+      if (_activeSources.contains(RecordingSource.microphone)) {
+        args.addAll(['-f', 'dshow', '-i', 'audio=default']);
+      }
+    } else if (defaultTargetPlatform == TargetPlatform.linux) {
+      if (_activeSources.contains(RecordingSource.screen)) {
+        args.addAll(['-f', 'x11grab', '-framerate', '30', '-i', ':0.0']);
+      }
+      if (_activeSources.contains(RecordingSource.microphone)) {
+        args.addAll(['-f', 'pulse', '-i', 'default']);
+      }
+    } else if (defaultTargetPlatform == TargetPlatform.macOS) {
+      if (_activeSources.contains(RecordingSource.screen)) {
+        args.addAll(['-f', 'avfoundation', '-framerate', '30', '-i', '1:0']);
+      }
+    }
+
+    args.addAll(['-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', outputPath]);
+    return args;
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
   }
 }
+

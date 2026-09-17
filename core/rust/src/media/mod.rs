@@ -151,6 +151,14 @@ impl Default for ProxyConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProxyStatus {
+    Valid,
+    Missing,
+    Corrupted,
+    NotRegistered,
+}
+
 pub struct ProxyManager {
     config: ProxyConfig,
     proxy_map: Mutex<HashMap<String, String>>,
@@ -178,13 +186,48 @@ impl ProxyManager {
         self.proxy_map.lock().insert(original_path, proxy_path);
     }
 
+    pub fn unregister_proxy(&self, original_path: &str) -> Option<String> {
+        self.proxy_map.lock().remove(original_path)
+    }
+
+    pub fn check_proxy_status(&self, original_path: &str) -> ProxyStatus {
+        let lock = self.proxy_map.lock();
+        if let Some(proxy_path) = lock.get(original_path) {
+            let path = std::path::Path::new(proxy_path);
+            if !path.exists() {
+                ProxyStatus::Missing
+            } else if let Ok(meta) = std::fs::metadata(path) {
+                if meta.len() == 0 {
+                    ProxyStatus::Corrupted
+                } else {
+                    ProxyStatus::Valid
+                }
+            } else {
+                ProxyStatus::Corrupted
+            }
+        } else {
+            ProxyStatus::NotRegistered
+        }
+    }
+
+    /// Returns the effective media path for editing/previewing.
+    /// If proxies are enabled and the proxy is verified on disk, returns the proxy path.
+    /// If the proxy is missing, corrupted, or proxies are disabled, safely falls back to original_path.
     pub fn get_effective_path(&self, original_path: &str) -> String {
         let enabled = *self.use_proxies.lock();
         if enabled {
-            if let Some(proxy) = self.proxy_map.lock().get(original_path) {
-                return proxy.clone();
+            if self.check_proxy_status(original_path) == ProxyStatus::Valid {
+                let lock = self.proxy_map.lock();
+                if let Some(proxy) = lock.get(original_path) {
+                    return proxy.clone();
+                }
             }
         }
+        original_path.to_string()
+    }
+
+    /// Always returns the pristine original source path for export rendering.
+    pub fn get_export_path(&self, original_path: &str) -> String {
         original_path.to_string()
     }
 
@@ -195,4 +238,65 @@ impl ProxyManager {
     pub fn is_using_proxies(&self) -> bool {
         *self.use_proxies.lock()
     }
+
+    /// Evicts proxy file from disk and unregisters it.
+    pub fn evict_proxy(&self, original_path: &str) -> Result<(), String> {
+        if let Some(proxy_path) = self.unregister_proxy(original_path) {
+            let p = std::path::Path::new(&proxy_path);
+            if p.exists() {
+                std::fs::remove_file(p).map_err(|e| e.to_string())?;
+            }
+        }
+        Ok(())
+    }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_proxy_lifecycle_validation_and_fallback() {
+        let mgr = ProxyManager::new(ProxyConfig::default());
+        let temp_dir = std::env::temp_dir();
+        let orig_file = temp_dir.join("test_orig.mp4");
+        let proxy_file = temp_dir.join("test_proxy_valid.mp4");
+        let corrupt_file = temp_dir.join("test_proxy_corrupt.mp4");
+
+        std::fs::write(&orig_file, b"ORIGINAL_MEDIA_CONTENT_4K").unwrap();
+        std::fs::write(&proxy_file, b"PROXY_MEDIA_CONTENT_720P").unwrap();
+        std::fs::write(&corrupt_file, b"").unwrap(); // 0 bytes = corrupted
+
+        let orig_str = orig_file.to_string_lossy().to_string();
+        let proxy_str = proxy_file.to_string_lossy().to_string();
+        let corrupt_str = corrupt_file.to_string_lossy().to_string();
+
+        // 1. Unregistered status
+        assert_eq!(mgr.check_proxy_status(&orig_str), ProxyStatus::NotRegistered);
+        assert_eq!(mgr.get_effective_path(&orig_str), orig_str);
+
+        // 2. Valid proxy registered
+        mgr.register_proxy(orig_str.clone(), proxy_str.clone());
+        assert_eq!(mgr.check_proxy_status(&orig_str), ProxyStatus::Valid);
+        assert_eq!(mgr.get_effective_path(&orig_str), proxy_str);
+
+        // 3. Export path must always use original media
+        assert_eq!(mgr.get_export_path(&orig_str), orig_str);
+
+        // 4. Corrupt proxy registered -> automatically falls back to original!
+        let corrupt_orig = "test_corrupt_orig.mp4".to_string();
+        mgr.register_proxy(corrupt_orig.clone(), corrupt_str.clone());
+        assert_eq!(mgr.check_proxy_status(&corrupt_orig), ProxyStatus::Corrupted);
+        assert_eq!(mgr.get_effective_path(&corrupt_orig), corrupt_orig);
+
+        // 5. Deleted proxy -> automatically falls back to original!
+        let _ = std::fs::remove_file(&proxy_file);
+        assert_eq!(mgr.check_proxy_status(&orig_str), ProxyStatus::Missing);
+        assert_eq!(mgr.get_effective_path(&orig_str), orig_str);
+
+        // Cleanup
+        let _ = std::fs::remove_file(&orig_file);
+        let _ = std::fs::remove_file(&corrupt_file);
+    }
+}
+

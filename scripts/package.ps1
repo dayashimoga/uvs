@@ -11,8 +11,8 @@ Write-Host ">>> Packaging Universal Video Studio Distributables..." -ForegroundC
 $winDist = "$distDir\universal_video_studio_windows_x64.zip"
 $tempWin = "$distDir\win_pkg"
 New-Item -ItemType Directory -Force -Path $tempWin | Out-Null
-Copy-Item "$root\core\rust\target\release\*.dll" -Destination $tempWin -ErrorAction SilentlyContinue
-Copy-Item "$root\core\rust\target\release\*.lib" -Destination $tempWin -ErrorAction SilentlyContinue
+Copy-Item "$root\core\rust\target\release\uvs_core.dll" -Destination $tempWin -ErrorAction SilentlyContinue
+Copy-Item "$root\dist\uvs_sbom.json" -Destination $tempWin -ErrorAction SilentlyContinue
 Copy-Item "$root\README.md" -Destination $tempWin
 Compress-Archive -Path "$tempWin\*" -DestinationPath $winDist -Force
 Remove-Item -Recurse -Force $tempWin
@@ -22,3 +22,4 @@ $hash = (Get-FileHash -Path $winDist -Algorithm SHA256).Hash
 "$hash  universal_video_studio_windows_x64.zip" | Out-File -FilePath "$distDir\SHA256SUMS" -Encoding utf8
 
 Write-Host "[SUCCESS] Created package: $winDist (SHA256: $hash)" -ForegroundColor Green
+

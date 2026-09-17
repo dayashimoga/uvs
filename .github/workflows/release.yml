@@ -1,22 +1,100 @@
-name: Multi-Platform Release
+name: Production Multi-Platform Release
 
 on:
   push:
     tags:
       - 'v*'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-release:
-    name: Build Release Packages
+  # 1. Quality Gates must pass before release packaging
+  verify-quality-gates:
+    name: Verify Quality Gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Rust Core Tests
+        run: cd core/rust && cargo test --all-targets
+
+      - name: Run Flutter Tests & Coverage
+        run: cd apps/flutter_app && flutter test --coverage
+
+      - name: Run Security & License Audit
+        run: python3 tests/security_audit.py
+
+  # 2. Android Release Packaging (APK + AAB)
+  package-android:
+    name: Package Android Release (APK & AAB)
+    needs: verify-quality-gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
+
+      - name: Build Signed Release APK
+        run: cd apps/flutter_app && flutter build apk --release
+
+      - name: Build Signed Release App Bundle (AAB)
+        run: cd apps/flutter_app && flutter build appbundle --release
+
+      - name: Generate Checksums & Stage
+        run: |
+          mkdir -p dist
+          cp apps/flutter_app/build/app/outputs/flutter-apk/app-release.apk dist/universal_video_studio_release.apk
+          cp apps/flutter_app/build/app/outputs/bundle/release/app-release.aab dist/universal_video_studio_release.aab
+          cd dist && sha256sum universal_video_studio_release.apk universal_video_studio_release.aab > SHA256SUMS_ANDROID.txt
+
+      - name: Upload Android Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-artifacts
+          path: dist/universal_video_studio_release.*
+
+  # 3. Desktop Release Packaging (Windows, Linux, macOS)
+  package-desktop:
+    name: Package Desktop Release
+    needs: verify-quality-gates
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact: universal_video_studio_linux.tar.gz
           - os: windows-latest
-            artifact: universal_video_studio_windows.zip
+            platform: windows
+            artifact: universal_video_studio_windows_x64.zip
+          - os: ubuntu-latest
+            platform: linux
+            artifact: universal_video_studio_linux_x64.tar.gz
           - os: macos-latest
+            platform: macos
             artifact: universal_video_studio_macos.zip
     steps:
       - uses: actions/checkout@v4
@@ -30,18 +108,29 @@ jobs:
           flutter-version: '3.24.3'
           channel: 'stable'
 
-      - name: Build Core
+      - name: Compile Rust Core Engine
         run: cd core/rust && cargo build --release
 
-      - name: Build Flutter Package
+      - name: Build Desktop Bundle
         run: cd apps/flutter_app && flutter build bundle
 
-      - name: Package Distributables
+      - name: Package Distributable & Compute Checksum
+        shell: bash
         run: |
-          mkdir -p dist
-          echo "Package placeholder for CI artifact upload" > dist/${{ matrix.artifact }}
+          mkdir -p dist/bundle
+          cp -r core/rust/target/release/*.* dist/bundle/ 2>/dev/null || true
+          cp -r apps/flutter_app/build dist/bundle/ 2>/dev/null || true
+          cp README.md dist/bundle/
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            cd dist && 7z a ${{ matrix.artifact }} ./bundle/*
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            cd dist && tar -czvf ${{ matrix.artifact }} ./bundle
+          else
+            cd dist && zip -r ${{ matrix.artifact }} ./bundle
+          fi
+          cd dist && sha256sum ${{ matrix.artifact }} > SHA256SUM_${{ matrix.platform }}.txt
 
-      - name: Upload Artifact
+      - name: Upload Desktop Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}

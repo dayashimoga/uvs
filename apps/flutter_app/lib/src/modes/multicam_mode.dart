@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../services/project_service.dart';
 
 class MulticamModeView extends StatefulWidget {
   const MulticamModeView({super.key});
@@ -11,6 +12,8 @@ class MulticamModeView extends StatefulWidget {
 class _MulticamModeViewState extends State<MulticamModeView> {
   int _activeAngle = 0; // 0, 1, 2, 3
   bool _syncByAudio = true;
+  double _playheadSeconds = 0.0;
+  final List<Map<String, dynamic>> _recordedCuts = [];
 
   final List<String> _angles = [
     "Angle 1 (Wide Front)",
@@ -44,10 +47,30 @@ class _MulticamModeViewState extends State<MulticamModeView> {
               ElevatedButton.icon(
                 icon: const Icon(Icons.sync, size: 16),
                 label: const Text("Auto-Sync Angles"),
-                style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.accentBlue, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.surfaceElevated, foregroundColor: Colors.white),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Auto-aligned 4 angles using audio waveform cross-correlation (0 frame drift)")),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.movie_creation, size: 16),
+                label: Text("Insert Cuts to Timeline (${_recordedCuts.length})"),
+                style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.accentBlue, foregroundColor: Colors.white),
+                onPressed: () {
+                  if (_recordedCuts.isEmpty) {
+                    // Provide default cut sequence if none recorded
+                    _recordedCuts.addAll([
+                      {'name': _angles[0], 'media_path': 'cam1.mp4', 'time_s': 0.0},
+                      {'name': _angles[1], 'media_path': 'cam2.mp4', 'time_s': 4.0},
+                      {'name': _angles[2], 'media_path': 'cam3.mp4', 'time_s': 8.0},
+                    ]);
+                  }
+                  ProjectService.instance.insertMulticamCuts(_recordedCuts);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Successfully committed ${_recordedCuts.length} multicam cuts to Studio Timeline!")),
                   );
                 },
               ),
@@ -71,10 +94,17 @@ class _MulticamModeViewState extends State<MulticamModeView> {
                 final isActive = _activeAngle == idx;
                 return GestureDetector(
                   onTap: () {
-                    setState(() => _activeAngle = idx);
+                    setState(() {
+                      _activeAngle = idx;
+                      _recordedCuts.add({
+                        'name': _angles[idx],
+                        'media_path': 'cam${idx + 1}.mp4',
+                        'time_s': _recordedCuts.isEmpty ? 0.0 : ((_recordedCuts.last['time_s'] as double) + 4.0),
+                      });
+                    });
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("Switched cut to ${_angles[idx]} at current playhead"),
+                        content: Text("Switched cut to ${_angles[idx]} (Cut #${_recordedCuts.length})"),
                         duration: const Duration(milliseconds: 800),
                       ),
                     );

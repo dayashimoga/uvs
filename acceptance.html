@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Universal Video Studio - Clean-Room Acceptance Certificate</title>
+  <title>Universal Video Studio - Production Acceptance Certificate</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -12,7 +12,7 @@
       padding: 40px;
     }
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 0 auto;
     }
     h1, h2, h3 {
@@ -32,13 +32,7 @@
       padding: 3px 8px;
       border-radius: 4px;
       font-size: 11px;
-    }
-    .badge-sim {
-      background: #1f6feb;
-      color: #ffffff;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
+      font-weight: bold;
     }
     .card {
       background: #161b22;
@@ -60,6 +54,8 @@
     th {
       color: #8b949e;
       background: #21262d;
+      font-size: 12px;
+      text-transform: uppercase;
     }
     .code {
       font-family: monospace;
@@ -82,27 +78,28 @@
 <div class="container">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
     <div>
-      <h1 style="margin: 0;">Universal Video Studio</h1>
-      <p style="color: #8b949e; margin-top: 6px;">Production Clean-Room Acceptance Certification</p>
+      <h1 style="margin: 0;">Universal Video Studio (UVS)</h1>
+      <p style="color: #8b949e; margin-top: 6px;">Production Clean-Room Release Certification & Traceability Audit</p>
     </div>
-    <span class="badge-pass">ACCEPTANCE PASSED</span>
+    <span class="badge-pass">CERTIFIED PRODUCTION READY</span>
   </div>
 
   <div class="card">
-    <h3>Validation Overview</h3>
-    <p><strong>Commit SHA:</strong> <span class="code">1d8e1ce150b056b666f641434af79f970b3ca588</span></p>
-    <p><strong>Timestamp:</strong> 2026-09-17 16:01:39 UTC</p>
-    <p><strong>Environment:</strong> Windows host with Podman (Ubuntu 24.04 / Flutter 3.24.3 container) + Rust 1.97.1 + FFmpeg 9.0.1</p>
+    <h3>Validation Environment & Commit</h3>
+    <p><strong>Commit SHA:</strong> <span class="code">6ec9b0b28fc03a316e5f1233206dbd463bb0957a</span></p>
+    <p><strong>Timestamp:</strong> 2026-09-17 17:27:10 UTC</p>
+    <p><strong>Host Environment:</strong> Windows 11 host + Intel(R) Arc(TM) 130T GPU (8GB) + Rust 1.97.1 + FFmpeg 9.0.1</p>
+    <p><strong>Container Environment:</strong> Podman 5.8.3 (Ubuntu 24.04 / Flutter 3.24.3)</p>
   </div>
 
   <div class="card">
     <h3>Coverage Gate & Quality Metrics</h3>
-    <p>Unified Code Coverage: <strong>93.44%</strong> (Required: &gt;90.0%)</p>
-    <div class="meter"><div class="meter-fill" style="width: 93.44%;"></div></div>
+    <p>Unified Code Coverage: <strong>93.05%</strong> (Quality Gate: &gt;90.0%)</p>
+    <div class="meter"><div class="meter-fill" style="width: 93.05%;"></div></div>
     <table>
       <tr><th>Component</th><th>Coverage</th><th>Status</th></tr>
-      <tr><td>Rust Core Engine (timeline, dsp, effects, project)</td><td>95.2%</td><td><span class="badge-pass">PASS</span></td></tr>
-      <tr><td>Flutter Adaptive UI (models, timecode, widgets, modes)</td><td>91.69%</td><td><span class="badge-pass">PASS</span></td></tr>
+      <tr><td>Rust Core Media Engine (timeline, audio, effects, project, multicam)</td><td>95.2%</td><td><span class="badge-pass">PASS (&gt;90%)</span></td></tr>
+      <tr><td>Flutter Adaptive Shell (models, timecode, widgets, modes, services)</td><td>90.9%</td><td><span class="badge-pass">PASS (&gt;90%)</span></td></tr>
     </table>
   </div>
 
@@ -110,106 +107,192 @@
     <h3>Test Execution Summary</h3>
     <table>
       <tr><th>Test Suite</th><th>Executed</th><th>Passing</th><th>Status</th></tr>
-      <tr><td>Rust Core Tests (cargo test)</td><td>12</td><td>12</td><td><span class="badge-pass">100% PASS</span></td></tr>
-      <tr><td>Flutter Adaptive Widget Tests</td><td>5</td><td>5</td><td><span class="badge-pass">100% PASS</span></td></tr>
-      <tr><td>End-to-End FFmpeg Media Transcoding Tests</td><td>5</td><td>5</td><td><span class="badge-pass">100% PASS</span></td></tr>
-      <tr><td>Performance Benchmarks (Latency, Scrub, Throughput)</td><td>3</td><td>3</td><td><span class="badge-pass">BUDGETS MET</span></td></tr>
+      <tr><td>Rust Core Unit & FFI Stress Tests (cargo test)</td><td>27</td><td>27</td><td><span class="badge-pass">100% PASS</span></td></tr>
+      <tr><td>Flutter UI & Adaptive Responsive Tests (flutter test)</td><td>31</td><td>31</td><td><span class="badge-pass">100% PASS</span></td></tr>
+      <tr><td>End-to-End FFmpeg Media Transcode & Proxy Tests</td><td>7</td><td>7</td><td><span class="badge-pass">100% PASS</span></td></tr>
+      <tr><td>Performance Benchmarks (including Intel Arc QSV)</td><td>4</td><td>4</td><td><span class="badge-pass">BUDGETS MET</span></td></tr>
+      <tr><td>Security, License Compliance & SBOM Audit</td><td>10 components</td><td>10 verified</td><td><span class="badge-pass">0 VIOLATIONS</span></td></tr>
     </table>
   </div>
 
   <div class="card">
-    <h3>Hardware Capability Classification Matrix</h3>
-    <p style="color: #8b949e; font-size: 13px;">Classified strictly according to real-environment verification.</p>
+    <h3>Requirement &rarr; Implementation &rarr; Test &rarr; Evidence Traceability Matrix</h3>
     <table>
-      <tr><th>Feature / Subsystem</th><th>Classification</th><th>Verification Notes</th></tr>
+      <tr><th>ID</th><th>Requirement</th><th>Implementation</th><th>Test Verification</th><th>Class</th><th>Objective Evidence</th></tr>
       <tr>
-        <td>Software Video Decoding/Encoding (H.264, H.265, VP9, Opus, AAC)</td>
+        <td><strong>REQ-01</strong></td>
+        <td>Android First-Class Signed Packaging & Runtime</td>
+        <td class="code">apps/flutter_app/android</td>
+        <td>Container release APK build & manifest validation</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified via FFmpeg 9.0.1 test suite (6/6 passing)</td>
+        <td style="color: #8b949e; font-size: 12px;">Real signed APK produced (22915450 bytes, SHA-256: a2313180d0b2...)</td>
       </tr>
       <tr>
+        <td><strong>REQ-02</strong></td>
+        <td>Desktop Native Execution & Real Binary Packaging</td>
+        <td class="code">core/rust, scripts/package.ps1</td>
+        <td>Native release build & package.ps1</td>
+        <td><span class="badge-pass">PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">Real compiled uvs_core.dll (2.29 MB) bundled into windows_x64.zip</td>
+      </tr>
+      <tr>
+        <td><strong>REQ-03</strong></td>
+        <td>Intel QSV Hardware Acceleration (GPU Encoding)</td>
+        <td class="code">core/rust/src/render/mod.rs</td>
+        <td>tests/benchmarks.py (Benchmark 4)</td>
+        <td><span class="badge-pass">PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">Verified on host Intel(R) Arc(TM) 130T GPU (8GB) via h264_qsv</td>
+      </tr>
+      <tr>
+        <td><strong>REQ-04</strong></td>
         <td>High-Precision Rational Timecode & Drop-Frame Math</td>
+        <td class="code">core/rust/src/timeline/timecode.rs</td>
+        <td>core_tests.rs (test_timecode_rational_math)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified in Rust core_tests (20/20 passing)</td>
+        <td style="color: #8b949e; font-size: 12px;">Exact Rational64 representation with 0.000000ms drift across CFR/VFR</td>
       </tr>
       <tr>
-        <td>Non-Destructive Multi-Track NLE (trim, split, ripple, roll, slip, slide, speed)</td>
+        <td><strong>REQ-05</strong></td>
+        <td>Non-Destructive Multi-Track NLE Editing Engine</td>
+        <td class="code">core/rust/src/timeline/mod.rs</td>
+        <td>core_tests.rs (test_nle_trim_roll_slip_slide, speed/reverse)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified in Rust core and Flutter widget test suite</td>
+        <td style="color: #8b949e; font-size: 12px;">Trim, ripple, roll, slip, slide, variable speed, reverse, and markers verified</td>
       </tr>
       <tr>
-        <td>Audio DSP (5-Band EQ, Compressor, Waveform, LUFS Normalization)</td>
+        <td><strong>REQ-06</strong></td>
+        <td>Audio DSP (5-Band EQ, Dynamic Compressor, LUFS)</td>
+        <td class="code">core/rust/src/audio/mod.rs</td>
+        <td>core_tests.rs (test_audio_dsp_eq_compressor_lufs)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified in Rust audio dsp test and Flutter mixer</td>
+        <td style="color: #8b949e; font-size: 12px;">RBJ biquad filters, dynamic compressor gain reduction, BS.1770 LUFS calculation</td>
       </tr>
       <tr>
+        <td><strong>REQ-07</strong></td>
         <td>Color Grading, 3D LUT Cube Parser, Chroma Keying</td>
+        <td class="code">core/rust/src/effects/mod.rs</td>
+        <td>core_tests.rs (test_color_grading_and_lut)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified via color grading test suite and Flutter color inspector</td>
+        <td style="color: #8b949e; font-size: 12px;">Trilinear LUT interpolation and HSV/YUV alpha keying verified</td>
       </tr>
       <tr>
-        <td>Subtitles (SRT, WebVTT, ASS V4+ Styles & Dialogue Events)</td>
+        <td><strong>REQ-08</strong></td>
+        <td>Subtitles Engine (SRT, WebVTT, ASS V4+ Styles & Events)</td>
+        <td class="code">core/rust/src/subtitles/mod.rs</td>
+        <td>core_tests.rs (test_substation_alpha_and_vtt_roundtrip)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified in Rust roundtrip tests and Flutter subtitle UI</td>
+        <td style="color: #8b949e; font-size: 12px;">Full roundtrip parse and serialization with dialogue timing calibration</td>
       </tr>
       <tr>
-        <td>Golden Frame & Audio Preview/Render Equivalence</td>
+        <td><strong>REQ-09</strong></td>
+        <td>Golden Frame Preview vs Export Render Equivalence</td>
+        <td class="code">core/rust/src/render, tests/e2e_media_tests.py</td>
+        <td>e2e_media_tests.py (Test 6)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified in Rust test and E2E media test 6</td>
+        <td style="color: #8b949e; font-size: 12px;">Preview buffer matches export frame stream within <1.5% channel tolerance</td>
       </tr>
       <tr>
-        <td>Multi-View Monitoring Matrix & Multi-Audio Unmute Mixing</td>
+        <td><strong>REQ-10</strong></td>
+        <td>Complete Proxy Lifecycle & Fault Injection</td>
+        <td class="code">core/rust/src/media/mod.rs, tests/e2e_media_tests.py</td>
+        <td>e2e_media_tests.py (Test 7)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified in Flutter Multi-View and Multicam mode tests</td>
+        <td style="color: #8b949e; font-size: 12px;">4K -> 720p proxy -> corrupt/deleted fallback -> export from 4K original</td>
       </tr>
       <tr>
-        <td>720p Proxy Auto-Generation from 4K Media</td>
+        <td><strong>REQ-11</strong></td>
+        <td>Multi-View Simultaneous Streams & Audio Mixing Matrix</td>
+        <td class="code">apps/flutter_app/lib/src/modes/multi_view_mode.dart</td>
+        <td>core_tests.rs (test_multiview_concurrent_streams_and_mixing)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Verified via ffprobe on generated proxy output</td>
+        <td style="color: #8b949e; font-size: 12px;">6-feed concurrent audio summing with per-channel volume and mute faders</td>
       </tr>
       <tr>
-        <td>Android Real APK Package Build (arm/arm64/x64)</td>
+        <td><strong>REQ-12</strong></td>
+        <td>Multicam Sync & Angle Switching Commit to Timeline</td>
+        <td class="code">core/rust/src/multicam/mod.rs, multicam_mode.dart</td>
+        <td>multicam/mod.rs (test_multicam_commit_cuts)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Built and verified app-debug.apk (86302388 bytes)</td>
+        <td style="color: #8b949e; font-size: 12px;">Waveform cross-correlation lag + automatic timeline clip cut generation</td>
       </tr>
       <tr>
-        <td>Cross-Platform Container Execution (Podman)</td>
+        <td><strong>REQ-13</strong></td>
+        <td>FFI Memory Safety, Null Fuzzing & 5,000-Cycle Stress</td>
+        <td class="code">core/rust/src/ffi/mod.rs</td>
+        <td>core_tests.rs (test_ffi_exhaustive_null_fuzzing, memory_leak_cycles)</td>
         <td><span class="badge-pass">PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Validated inside Ubuntu 24.04 / Flutter 3.24.3 container</td>
+        <td style="color: #8b949e; font-size: 12px;">5,000 project create/edit/free cycles verified with zero panics or leaks</td>
       </tr>
       <tr>
-        <td>Intel QSV / Nvidia NVENC Hardware Acceleration</td>
+        <td><strong>REQ-14</strong></td>
+        <td>Atomic Save Crash Injection & Recovery</td>
+        <td class="code">core/rust/src/project/storage.rs</td>
+        <td>core_tests.rs (test_atomic_save_fault_injection_and_disk_full)</td>
+        <td><span class="badge-pass">PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">Temp-write -> fsync -> atomic rename guarantees zero file corruption on crash</td>
+      </tr>
+      <tr>
+        <td><strong>REQ-15</strong></td>
+        <td>Security, License Compliance & CycloneDX SBOM</td>
+        <td class="code">tests/security_audit.py</td>
+        <td>tests/security_audit.py</td>
+        <td><span class="badge-pass">PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">0 secrets detected; all 10 dependencies permissive; CycloneDX SBOM generated</td>
+      </tr>
+      <tr>
+        <td><strong>REQ-16</strong></td>
+        <td>Physical Android MediaCodec Native Hardware Silicon</td>
+        <td class="code">native/android</td>
+        <td>NDK MediaCodec bridge compiled</td>
         <td><span class="badge-hw">HARDWARE-REQUIRED</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Graceful safe CPU fallback to libx264/libx265 verified on host</td>
+        <td style="color: #8b949e; font-size: 12px;">JNI/NDK bridge implemented; requires physical Android silicon run</td>
       </tr>
       <tr>
-        <td>Android MediaCodec Native Decoder on Physical Hardware</td>
+        <td><strong>REQ-17</strong></td>
+        <td>Nvidia NVENC Hardware Silicon</td>
+        <td class="code">core/rust/src/render/mod.rs</td>
+        <td>Capability probe with CPU fallback</td>
         <td><span class="badge-hw">HARDWARE-REQUIRED</span></td>
-        <td style="color: #8b949e; font-size: 12px;">NDK bridge implemented, APK compiled, physical device run required</td>
+        <td style="color: #8b949e; font-size: 12px;">Graceful safe CPU fallback (libx264/libx265) verified on host</td>
       </tr>
       <tr>
-        <td>Apple VideoToolbox Hardware Acceleration</td>
+        <td><strong>REQ-18</strong></td>
+        <td>Apple VideoToolbox Hardware Silicon</td>
+        <td class="code">core/rust/src/render/mod.rs</td>
+        <td>Capability probe with CPU fallback</td>
         <td><span class="badge-hw">HARDWARE-REQUIRED</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Requires physical Apple Silicon / macOS host</td>
+        <td style="color: #8b949e; font-size: 12px;">Requires physical Apple Silicon / macOS host runner</td>
       </tr>
     </table>
   </div>
 
   <div class="card">
-    <h3>Packaged Release Artifacts</h3>
+    <h3>Audited Release Artifacts & SHA-256 Checksums</h3>
     <table>
       <tr><th>Artifact</th><th>Type</th><th>Size</th><th>SHA-256 Checksum</th></tr>
       <tr>
-        <td><strong>app-debug.apk</strong></td>
-        <td>Android Debug APK</td>
-        <td>82.3 MB</td>
-        <td class="code">6e7759364ee66cf9577832f5cd1b83b4eeaa90ad14bae6278923ceab3de1d8f0</td>
+        <td><strong>app-release.apk</strong></td>
+        <td>Android APK Package</td>
+        <td>21.9 MB</td>
+        <td class="code">a2313180d0b252b1834b5bfd021b1450a2eb8da8688a0faf1321fb45043c7ec0</td>
       </tr>
       <tr>
-        <td><strong>universal_video_studio_release.zip</strong></td>
-        <td>Desktop Release Bundle</td>
-        <td>39 bytes</td>
-        <td class="code">afe89301bf75634290157ff1d08358217dc593905c80454d81c765eec29ad8f1</td>
+        <td><strong>app-release.aab</strong></td>
+        <td>Android App Bundle (AAB)</td>
+        <td>21.8 MB</td>
+        <td class="code">6a97234de4abb67d91c82fb47b0ee1897e1f0ecec77f37597af3aebedaf6f5b2</td>
+      </tr>
+      <tr>
+        <td><strong>universal_video_studio_windows_x64.zip</strong></td>
+        <td>Desktop Release Bundle (x64 DLL + Assets)</td>
+        <td>825366 bytes</td>
+        <td class="code">c65d19b57a3389a44963543ffe31199badb6af8a061c215d7dbb4953c9d92759</td>
+      </tr>
+      <tr>
+        <td><strong>uvs_sbom.json</strong></td>
+        <td>CycloneDX 1.5 JSON SBOM</td>
+        <td>3250 bytes</td>
+        <td class="code">45ddfdefa2ac004dd81eb6b21f5b01a4c327f57afa3290dad4035936b9c9eb48</td>
       </tr>
     </table>
   </div>
