@@ -25,8 +25,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.3'
           channel: 'stable'
+          cache: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -56,8 +56,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.3'
           channel: 'stable'
+          cache: true
 
       - name: Setup Rust & Android Targets
         uses: dtolnay/rust-toolchain@stable
@@ -118,8 +118,8 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.3'
           channel: 'stable'
+          cache: true
 
       - name: Install Linux Build Dependencies (Linux Only)
         if: matrix.platform == 'linux'
