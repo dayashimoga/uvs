@@ -38,16 +38,22 @@ android {
 
     signingConfigs {
         release {
-            storeFile file("release.keystore")
-            storePassword(System.getenv("UVS_KEYSTORE_PASS") ?: ("uvs" + "release123"))
-            keyAlias "uvs_release"
-            keyPassword(System.getenv("UVS_KEY_PASS") ?: ("uvs" + "release123"))
+            if (file("release.keystore").exists()) {
+                storeFile file("release.keystore")
+                storePassword(System.getenv("UVS_KEYSTORE_PASS") ?: ("uvs" + "release123"))
+                keyAlias "uvs_release"
+                keyPassword(System.getenv("UVS_KEY_PASS") ?: ("uvs" + "release123"))
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.release
+            if (file("release.keystore").exists()) {
+                signingConfig = signingConfigs.release
+            } else {
+                signingConfig = signingConfigs.debug
+            }
             minifyEnabled false
             shrinkResources false
         }
