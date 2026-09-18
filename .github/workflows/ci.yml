@@ -67,7 +67,6 @@ jobs:
         run: |
           bash ./scripts/coverage.sh
 
-
   e2e-media:
     name: FFmpeg E2E Transcoding & Performance
     runs-on: ubuntu-latest
@@ -84,6 +83,9 @@ jobs:
 
       - name: Run E2E Media Tests
         run: python3 tests/e2e_media_tests.py
+
+      - name: Run Real Multi-View, Multicam & Recording Tests
+        run: python3 tests/test_real_multiview_multicam_recording.py
 
       - name: Run Performance Benchmarks
         run: python3 tests/benchmarks.py
@@ -116,4 +118,3 @@ jobs:
 
       - name: Run Security & SBOM Audit
         run: python3 tests/security_audit.py
-

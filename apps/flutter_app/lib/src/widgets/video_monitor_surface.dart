@@ -27,7 +27,6 @@ class VideoMonitorSurface extends StatefulWidget {
 
 class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
   String? _framePath;
-  String? _resolvedMediaPath;
   bool _isOffline = false;
 
   @override
@@ -49,7 +48,6 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
   void _resolveAndExtractFrame() {
     _isOffline = false;
     _framePath = null;
-    _resolvedMediaPath = null;
 
     final path = widget.mediaPath;
     if (path == null || path.isEmpty) {
@@ -58,7 +56,6 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
     }
 
     if (File(path).existsSync()) {
-      _resolvedMediaPath = path;
       if (path.endsWith('.png') || path.endsWith('.jpg')) {
         _framePath = path;
       } else {
@@ -175,13 +172,13 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
 
   Widget _buildSyntheticRaster() {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF0D1117),
-            const Color(0xFF161B22),
+            Color(0xFF0D1117),
+            Color(0xFF161B22),
             StudioTheme.surfaceElevated,
           ],
         ),
@@ -193,7 +190,7 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
             child: Icon(
               Icons.videocam,
               size: 48,
-              color: StudioTheme.accentCyan.withOpacity(0.2),
+              color: StudioTheme.accentCyan.withValues(alpha: 0.2),
             ),
           ),
           // Precision Safe Area Crossbars
@@ -202,7 +199,7 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                border: Border.all(color: StudioTheme.accentCyan.withOpacity(0.15)),
+                border: Border.all(color: StudioTheme.accentCyan.withValues(alpha: 0.15)),
               ),
             ),
           ),

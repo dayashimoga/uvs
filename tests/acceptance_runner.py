@@ -26,7 +26,12 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 DIST_DIR.mkdir(parents=True, exist_ok=True)
 
 def run_cmd(cmd, cwd=None):
-    res = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    use_shell = False
+    if sys.platform == "win32" and isinstance(cmd, list) and cmd:
+        first = str(cmd[0]).lower()
+        if first.endswith(".bat") or first.endswith(".cmd") or "flutter" in first:
+            use_shell = True
+    res = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=use_shell)
     return res
 
 def get_git_commit():
@@ -74,17 +79,6 @@ def main():
             break
 
     flutter_res = run_cmd([flutter_bin, "test", "--coverage"], cwd=str(ROOT_DIR / "apps" / "flutter_app"))
-    if flutter_res.returncode != 0:
-        flutter_cmd = [
-            "podman", "run", "--rm",
-            "-e", "PUB_CACHE=/work/.pub-cache",
-            "-v", f"{ROOT_DIR}:/work",
-            "-w", "/work/apps/flutter_app",
-            "ghcr.io/cirruslabs/flutter:3.24.3",
-            "flutter", "test", "--coverage"
-        ]
-        flutter_res = run_cmd(flutter_cmd)
-
     flutter_passed = flutter_res.returncode == 0
     matches = re.findall(r"\+(\d+): All tests passed", flutter_res.stdout)
     flutter_total = int(matches[-1]) if matches else 115
@@ -100,6 +94,8 @@ def main():
     print("\n>>> Running Benchmarks & Hardware Acceleration...")
     bench_res = run_cmd([sys.executable, str(ROOT_DIR / "tests" / "benchmarks.py")])
     bench_passed = bench_res.returncode == 0
+    if not bench_passed:
+        print(f"Benchmarks Error ({bench_res.returncode}):\n{bench_res.stderr}\n{bench_res.stdout}")
     print(f"Benchmarks: {'PASSED (All Budgets Met)' if bench_passed else 'FAILED'}")
 
     benchmarks_data = []

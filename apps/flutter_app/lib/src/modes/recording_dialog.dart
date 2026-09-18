@@ -59,25 +59,25 @@ class _RecordingDialogState extends State<RecordingDialog> {
             SwitchListTile(
               title: const Text("Capture Screen / Window"),
               value: _recordScreen,
-              activeColor: StudioTheme.accentCyan,
+              activeThumbColor: StudioTheme.accentCyan,
               onChanged: isRec ? null : (v) => setState(() => _recordScreen = v),
             ),
             SwitchListTile(
               title: const Text("Capture Facecam (Integrated Camera)"),
               value: _recordCamera,
-              activeColor: StudioTheme.accentCyan,
+              activeThumbColor: StudioTheme.accentCyan,
               onChanged: isRec ? null : (v) => setState(() => _recordCamera = v),
             ),
             SwitchListTile(
               title: const Text("Capture Microphone Audio"),
               value: _recordMic,
-              activeColor: StudioTheme.accentCyan,
+              activeThumbColor: StudioTheme.accentCyan,
               onChanged: isRec ? null : (v) => setState(() => _recordMic = v),
             ),
             SwitchListTile(
               title: const Text("Capture System Audio Loopback"),
               value: _recordSystemAudio,
-              activeColor: StudioTheme.accentCyan,
+              activeThumbColor: StudioTheme.accentCyan,
               onChanged: isRec ? null : (v) => setState(() => _recordSystemAudio = v),
             ),
             if (_recordSystemAudio && sysWarning != null)

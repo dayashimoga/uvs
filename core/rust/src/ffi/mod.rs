@@ -1280,9 +1280,7 @@ pub extern "C" fn uvs_media_probe(path: *const c_char) -> *mut c_char {
             .output();
 
         match output {
-            Ok(out) if out.status.success() => {
-                String::from_utf8_lossy(&out.stdout).to_string()
-            }
+            Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).to_string(),
             Ok(out) => {
                 let err = String::from_utf8_lossy(&out.stderr);
                 format!("{{\"error\": \"ffprobe failed: {}\"}}", err)
@@ -1314,16 +1312,7 @@ pub extern "C" fn uvs_decode_frame(
         let time_str = format!("{:.3}", time_s.max(0.0));
         let output = std::process::Command::new("ffmpeg")
             .args([
-                "-y",
-                "-ss",
-                &time_str,
-                "-i",
-                in_str,
-                "-vframes",
-                "1",
-                "-q:v",
-                "2",
-                out_str,
+                "-y", "-ss", &time_str, "-i", in_str, "-vframes", "1", "-q:v", "2", out_str,
             ])
             .output();
 
@@ -1407,4 +1396,3 @@ pub extern "C" fn uvs_proxy_generate(
         Err(_) => err_json("Panic in uvs_proxy_generate"),
     }
 }
-

@@ -1207,7 +1207,7 @@ void main() {
     test('RenderService real ffmpeg execution and MediaService probe', () async {
       final testVideo = File('c:/Users/dayan/uvs/tests/output/cam_test.mp4');
       if (testVideo.existsSync()) {
-        final mediaRes = await MediaService.instance.probeMedia(testVideo.path);
+        final mediaRes = MediaService.instance.probeMedia(testVideo.path);
         expect(mediaRes.width, greaterThan(0));
         expect(mediaRes.durationSeconds, greaterThan(0.0));
 
@@ -1257,7 +1257,7 @@ void main() {
       if (started) {
         expect(rec.isRecording, isTrue);
         await Future.delayed(const Duration(milliseconds: 200));
-        await rec.stopRecording();
+        rec.stopRecording();
         expect(rec.isRecording, isFalse);
         if (File(recOut).existsSync()) {
           File(recOut).deleteSync();

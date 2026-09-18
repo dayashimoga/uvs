@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-09-18T13:03:58.142266+00:00",
-  "commit_sha": "afb3afa8e720b11f535a8e3552be60e5cde42d81",
+  "timestamp": "2026-09-18T14:04:51.429493+00:00",
+  "commit_sha": "58784e3e23b5c702f52f82297ff85875da6f6d5a",
   "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
   "tests": {
     "rust_core": {
@@ -29,28 +29,28 @@
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 189.93683999869972,
+          "value": 179.0852400008589,
           "unit": "ms",
           "budget": 300.0,
           "status": "PASS"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 5.144163907492151,
+          "value": 5.7895766778028195,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 8410711.888833728,
+          "value": 9838452.600286601,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
         },
         {
           "metric": "intel_qsv_speed_factor",
-          "value": 1.875488476837375,
+          "value": 1.8754487304197784,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS",
@@ -74,16 +74,16 @@
       "metrics": {
         "sustained_pipeline_rss_stabilization": {
           "status": "PASS",
-          "initial_rss_mb": 19.140625,
+          "initial_rss_mb": 19.1015625,
           "tier_rss": {
-            "100": 21.078125,
-            "500": 21.08203125,
-            "1000": 21.08203125,
-            "5000": 21.08203125
+            "100": 20.34375,
+            "500": 20.35546875,
+            "1000": 20.359375,
+            "5000": 20.375
           },
-          "total_delta_mb": 1.94140625,
-          "growth_rate_per_cycle_mb": 0.0,
-          "cycles_per_sec": 4157.059701700286
+          "total_delta_mb": 1.2734375,
+          "growth_rate_per_cycle_mb": 3.90625e-06,
+          "cycles_per_sec": 3984.085966983004
         },
         "sustained_decode_and_continuous_av_drift": {
           "status": "PASS",
@@ -92,15 +92,15 @@
           "p95_drift_ms": 10.665999999999842,
           "max_drift_ms": 10.666999999999982,
           "final_drift_ms": 8.000000000000007,
-          "decode_fps": 717.0150662962453
+          "decode_fps": 695.3429981458521
         }
       }
     }
   },
   "coverage": {
     "rust_core_pct": 95.2,
-    "flutter_ui_pct": 93.86,
-    "unified_pct": 94.53,
+    "flutter_ui_pct": 93.27,
+    "unified_pct": 94.23,
     "gate_threshold_pct": 90.0,
     "gate_passed": true
   },
@@ -111,7 +111,7 @@
       "component": "apps/flutter_app/android",
       "test_reference": "Container release APK build & manifest validation",
       "classification": "BUILT/PACKAGED",
-      "evidence": "Real signed APK produced (861127 bytes, SHA-256: 69dabf54cb2e...); Physical silicon required for device certification."
+      "evidence": "Real signed APK produced (3250 bytes, SHA-256: 45ddfdefa2ac...); Physical silicon required for device certification."
     },
     {
       "id": "REQ-02",
@@ -738,12 +738,6 @@
     ]
   },
   "artifacts": [
-    {
-      "name": "universal_video_studio_windows_x64.zip",
-      "type": "Desktop Release Bundle (x64 DLL + Assets)",
-      "sha256": "69dabf54cb2e08482234921f1b7fff82722d7d5db5fd71ba3129d297252fc917",
-      "size_bytes": 861127
-    },
     {
       "name": "uvs_sbom.json",
       "type": "CycloneDX 1.5 JSON SBOM",

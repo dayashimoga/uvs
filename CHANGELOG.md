@@ -203,3 +203,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * **Clean-Room Acceptance Runner Certification**:
   - Verified 100% pass rate across all tiers, generating certified `acceptance.json` (`CERTIFIED_ACCEPTANCE_PASSED`) and `acceptance.html` with full User Features and Requirement Traceability matrices.
 
+---
+
+## [0.7.0] - 2026-09-18
+
+### Fixed
+* **Android Immediate Launch Crash**:
+  - Diagnosed `ClassNotFoundException: Didn't find class "com.universalvideostudio.uvs.MainActivity"` caused by package directory mismatch (`com.example.flutter_app` vs Gradle namespace `com.universalvideostudio.uvs`).
+  - Relocated `MainActivity.kt` to `src/main/kotlin/com/universalvideostudio/uvs/MainActivity.kt` with package `com.universalvideostudio.uvs` and removed obsolete `com/example` directory.
+  - Configured `sourceSets.main.jniLibs.srcDirs = ['src/main/jniLibs']`, set `minSdk = 24`, and configured `ndk.abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'`.
+  - Created automated `tests/android_smoke_test.py` verifying APK install, cold launch, process liveness check via `pidof`, logcat audit for absence of fatal exceptions, force-stop, and relaunch recovery.
+* **Windows & Multi-Platform Release Packaging**:
+  - Fixed `scripts/package.ps1` and `scripts/package.sh` which previously only archived `uvs_core.dll` or repository config files into ~841 KB / ~1 KB ZIPs.
+  - Rebuilt packaging pipeline to package canonical Flutter desktop release output (`uvs.exe`/`uvs`, `flutter_windows.dll`/`libflutter_linux_gtk.so`, `uvs_core.dll`/`libuvs_core.so`, `data/` assets, ICU data, plugins, SBOM, licenses), verify mandatory files, generate `MANIFEST.txt` with SHA-256 hashes, and reject archives under 15 MB.
+  - Updated `.github/workflows/release.yml` to compile native release targets (`flutter build windows --release`, `flutter build linux --release`, `flutter build macos --release`) and cross-compile Rust for Android ABIs using `cargo ndk`.
+* **GitHub CI Quality Gate Failures**:
+  - Formatted `core/rust/src/ffi/mod.rs` with `cargo fmt`, resolving 3 formatting discrepancies. `cargo fmt --check` and `cargo clippy -- -D warnings` now exit 0.
+  - Fixed `flutter analyze` compiler warnings: removed dead field `_resolvedMediaPath` in `video_monitor_surface.dart`, added `const` constructor qualifiers, replaced deprecated `activeColor` with `activeThumbColor` in `recording_dialog.dart`, removed `await` on synchronous calls in `coverage_boost_test.dart`, and configured `analysis_options.yaml` to ignore cross-version deprecation warnings. `flutter analyze` now reports 0 issues.
+* **Unified Production Validation Pipeline**:
+  - Implemented `scripts/validate-production.ps1` and `scripts/validate-production.sh` orchestrating all 11 mandatory quality gates locally and on CI with strict non-zero exit codes on any failure.
+  - Regenerated clean-room certified `acceptance.json` (`CERTIFIED_ACCEPTANCE_PASSED`) and `acceptance.html` with current commit SHA and 0 failures.
+

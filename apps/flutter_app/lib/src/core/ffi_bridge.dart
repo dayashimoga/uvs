@@ -409,8 +409,10 @@ class UvsFfiBridge {
 
   void _initLibrary() {
     try {
+      final exeDir = File(Platform.resolvedExecutable).parent.path;
       if (Platform.isWindows) {
         final candidates = [
+          '$exeDir/uvs_core.dll',
           'uvs_core.dll',
           'core/rust/target/release/uvs_core.dll',
           'core/rust/target/debug/uvs_core.dll',
@@ -427,8 +429,18 @@ class UvsFfiBridge {
             break;
           }
         }
+        if (!_isNative) {
+          // Attempt direct Windows system/path load
+          try {
+            _lib = ffi.DynamicLibrary.open('uvs_core.dll');
+            _bindNativeFunctions();
+            _isNative = true;
+          } catch (_) {}
+        }
       } else if (Platform.isLinux) {
         final candidates = [
+          '$exeDir/lib/libuvs_core.so',
+          '$exeDir/libuvs_core.so',
           'libuvs_core.so',
           'core/rust/target/release/libuvs_core.so',
           'core/rust/target/debug/libuvs_core.so',
@@ -443,8 +455,17 @@ class UvsFfiBridge {
             break;
           }
         }
+        if (!_isNative) {
+          try {
+            _lib = ffi.DynamicLibrary.open('libuvs_core.so');
+            _bindNativeFunctions();
+            _isNative = true;
+          } catch (_) {}
+        }
       } else if (Platform.isMacOS) {
         final candidates = [
+          '$exeDir/../Frameworks/libuvs_core.dylib',
+          '$exeDir/libuvs_core.dylib',
           'libuvs_core.dylib',
           'core/rust/target/release/libuvs_core.dylib',
           'core/rust/target/debug/libuvs_core.dylib',
@@ -457,10 +478,22 @@ class UvsFfiBridge {
             break;
           }
         }
+        if (!_isNative) {
+          try {
+            _lib = ffi.DynamicLibrary.open('libuvs_core.dylib');
+            _bindNativeFunctions();
+            _isNative = true;
+          } catch (_) {}
+        }
       } else if (Platform.isAndroid) {
-        _lib = ffi.DynamicLibrary.open('libuvs_core.so');
-        _bindNativeFunctions();
-        _isNative = true;
+        try {
+          _lib = ffi.DynamicLibrary.open('libuvs_core.so');
+          _bindNativeFunctions();
+          _isNative = true;
+        } catch (_) {
+          _isNative = false;
+          _lib = null;
+        }
       }
     } catch (_) {
       _isNative = false;
