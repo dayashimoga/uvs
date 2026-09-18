@@ -109,6 +109,7 @@ jobs:
     needs: verify-quality-gates
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -144,7 +145,7 @@ jobs:
           if [ "${{ matrix.platform }}" = "windows" ]; then
             cd core/rust && cargo build --release && cd ../..
             cd apps/flutter_app && flutter build windows --release && cd ../..
-            powershell -File ./scripts/package.ps1
+            powershell -ExecutionPolicy Bypass -File ./scripts/package.ps1
           elif [ "${{ matrix.platform }}" = "linux" ]; then
             cd core/rust && cargo build --release && cd ../..
             cd apps/flutter_app && flutter build linux --release && cd ../..
@@ -159,7 +160,12 @@ jobs:
               cp core/rust/target/release/libuvs_core.dylib "$MAC_APP/Contents/Frameworks/" 2>/dev/null || true
               cd apps/flutter_app/build/macos/Build/Products/Release && zip -r ../../../../../../dist/${{ matrix.artifact }} uvs.app
             fi
-            cd dist && sha256sum ${{ matrix.artifact }} > SHA256SUM_macos.txt
+            cd dist
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum ${{ matrix.artifact }} > SHA256SUM_macos.txt
+            else
+              shasum -a 256 ${{ matrix.artifact }} > SHA256SUM_macos.txt
+            fi
           fi
 
       - name: Upload Desktop Artifact
