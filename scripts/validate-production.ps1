@@ -32,6 +32,8 @@ Write-Host "[PASS] Rust formatting and clippy linter passed cleanly." -Foregroun
 Write-Host "`n>>> [2/11] Running Rust Core Engine Tests..." -ForegroundColor Cyan
 Push-Location "$root\core\rust"
 try {
+    cargo build --release
+    if ($LASTEXITCODE -ne 0) { throw "cargo build --release failed with exit code $LASTEXITCODE" }
     cargo test --all-targets --verbose
     if ($LASTEXITCODE -ne 0) { throw "cargo test failed with exit code $LASTEXITCODE" }
 } finally {

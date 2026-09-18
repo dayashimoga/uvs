@@ -446,6 +446,8 @@ class UvsFfiBridge {
           'core/rust/target/debug/libuvs_core.so',
           '../core/rust/target/release/libuvs_core.so',
           '../core/rust/target/debug/libuvs_core.so',
+          '../../core/rust/target/release/libuvs_core.so',
+          '../../core/rust/target/debug/libuvs_core.so',
         ];
         for (final path in candidates) {
           if (File(path).existsSync()) {
@@ -469,6 +471,10 @@ class UvsFfiBridge {
           'libuvs_core.dylib',
           'core/rust/target/release/libuvs_core.dylib',
           'core/rust/target/debug/libuvs_core.dylib',
+          '../core/rust/target/release/libuvs_core.dylib',
+          '../core/rust/target/debug/libuvs_core.dylib',
+          '../../core/rust/target/release/libuvs_core.dylib',
+          '../../core/rust/target/debug/libuvs_core.dylib',
         ];
         for (final path in candidates) {
           if (File(path).existsSync()) {

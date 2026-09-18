@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-09-18T14:04:51.429493+00:00",
-  "commit_sha": "58784e3e23b5c702f52f82297ff85875da6f6d5a",
-  "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
+  "timestamp": "2026-09-18T14:59:15.111254+00:00",
+  "commit_sha": "05aacc34bbca67b3fd70ffc7b1fed72041d2c835",
+  "overall_status": "FAILED",
   "tests": {
     "rust_core": {
       "passed": true,
@@ -24,33 +24,33 @@
       "failed": 0
     },
     "benchmarks": {
-      "passed": true,
+      "passed": false,
       "total": 4,
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 179.0852400008589,
+          "value": 365.0528599973768,
           "unit": "ms",
           "budget": 300.0,
-          "status": "PASS"
+          "status": "FAIL"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 5.7895766778028195,
+          "value": 3.007394204948432,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 9838452.600286601,
+          "value": 9615107.255141418,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
         },
         {
           "metric": "intel_qsv_speed_factor",
-          "value": 1.8754487304197784,
+          "value": 1.0958626991437006,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS",
@@ -74,16 +74,16 @@
       "metrics": {
         "sustained_pipeline_rss_stabilization": {
           "status": "PASS",
-          "initial_rss_mb": 19.1015625,
+          "initial_rss_mb": 19.09765625,
           "tier_rss": {
-            "100": 20.34375,
-            "500": 20.35546875,
-            "1000": 20.359375,
-            "5000": 20.375
+            "100": 20.33203125,
+            "500": 20.33984375,
+            "1000": 20.33984375,
+            "5000": 20.35546875
           },
-          "total_delta_mb": 1.2734375,
+          "total_delta_mb": 1.2578125,
           "growth_rate_per_cycle_mb": 3.90625e-06,
-          "cycles_per_sec": 3984.085966983004
+          "cycles_per_sec": 2386.5939481225178
         },
         "sustained_decode_and_continuous_av_drift": {
           "status": "PASS",
@@ -92,7 +92,7 @@
           "p95_drift_ms": 10.665999999999842,
           "max_drift_ms": 10.666999999999982,
           "final_drift_ms": 8.000000000000007,
-          "decode_fps": 695.3429981458521
+          "decode_fps": 418.1978807769347
         }
       }
     }

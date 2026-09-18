@@ -25,6 +25,7 @@ echo "[PASS] Rust formatting and clippy linter passed cleanly."
 
 # 2. Rust Core Engine Unit & Integration Tests
 echo -e "\n>>> [2/11] Running Rust Core Engine Tests..."
+(cd "${ROOT_DIR}/core/rust" && cargo build --release)
 (cd "${ROOT_DIR}/core/rust" && cargo test --all-targets --verbose)
 echo "[PASS] Rust core tests passed (28/28)."
 
