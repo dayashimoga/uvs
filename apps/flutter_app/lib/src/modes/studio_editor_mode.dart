@@ -8,6 +8,8 @@ import '../models/render_job_model.dart';
 import '../widgets/timeline_view.dart';
 import '../widgets/audio_mixer_view.dart';
 import '../widgets/color_inspector_view.dart';
+import '../services/project_service.dart';
+import '../services/render_service.dart';
 
 class StudioEditorModeView extends StatefulWidget {
   const StudioEditorModeView({super.key});
@@ -21,11 +23,13 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   double _playheadTime = 0.0;
   bool _isPlaying = false;
   Timer? _playbackTimer;
-  Timer? _renderTimer;
   ClipModel? _selectedClip;
   int _sidePanelTab = 0; // 0: Inspector, 1: Color, 2: Audio, 3: Subtitles, 4: Render Queue
 
-  final List<RenderJobModel> _renderJobs = [];
+  final List<Map<String, String>> _subtitleCues = [
+    {"in": "00:00:00:15", "out": "00:00:02:00", "text": "Universal Video Studio - Production Ready"},
+    {"in": "00:00:02:05", "out": "00:00:04:00", "text": "High Performance Non-Destructive Video NLE"},
+  ];
 
   @override
   void initState() {
@@ -37,7 +41,6 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   @override
   void dispose() {
     _playbackTimer?.cancel();
-    _renderTimer?.cancel();
     super.dispose();
   }
 
@@ -81,6 +84,8 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
         );
         track.clips.add(newClip);
         track.clips.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+        ProjectService.instance.splitClip(track.id, _selectedClip!.id, splitPoint);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Clip split at ${TimecodeHelper.formatDurationSeconds(_playheadTime)}")),
@@ -95,8 +100,8 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
           if (track.clips.contains(_selectedClip)) {
             final idx = track.clips.indexOf(_selectedClip!);
             final removedDur = _selectedClip!.duration;
+            ProjectService.instance.rippleDelete(track.id, _selectedClip!.id);
             track.clips.removeAt(idx);
-            // Ripple shift subsequent clips
             for (int i = idx; i < track.clips.length; i++) {
               track.clips[i].startTime -= removedDur;
             }
@@ -114,7 +119,6 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   void _openExportDialog() {
     String format = "MP4";
     String resolution = "1080p (1920x1080)";
-    String codec = "H.264 (Hardware NVENC/QSV/CPU)";
 
     showDialog(
       context: context,
@@ -172,7 +176,7 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        "Hardware Encoder Detected (Auto-fallback to libx264 enabled)",
+                        "Hardware Transcode Engine Ready (NVENC / Intel QSV / MediaCodec / libx264)",
                         style: TextStyle(fontSize: 11, color: StudioTheme.textPrimary),
                       ),
                     ),
@@ -191,37 +195,20 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
             ),
             onPressed: () {
               Navigator.pop(ctx);
+              final inputMedia = _selectedClip?.mediaPath ?? 'sample_video.mp4';
+              final outPath = "exports/${_project.name.toLowerCase().replaceAll(' ', '_')}.${format.toLowerCase()}";
+              RenderService.instance.queueRender(
+                name: "Export: ${_project.name} ($resolution)",
+                outputPath: outPath,
+                project: ProjectService.instance.project,
+                inputPath: inputMedia,
+              );
               setState(() {
-                final job = RenderJobModel(
-                  id: "job-${DateTime.now().millisecondsSinceEpoch}",
-                  name: "Export: ${_project.name} ($resolution)",
-                  outputPath: "exports/${_project.name.toLowerCase().replaceAll(' ', '_')}.${format.toLowerCase()}",
-                  format: format,
-                  resolution: resolution,
-                  codec: codec,
-                  progress: 0.0,
-                  status: RenderStatus.rendering,
-                );
-                _renderJobs.add(job);
                 _sidePanelTab = 4; // Switch to Render Queue tab
               });
-              // Simulate rendering progression
-              _renderTimer?.cancel();
-              _renderTimer = Timer.periodic(const Duration(milliseconds: 200), (t) {
-                if (!mounted) {
-                  t.cancel();
-                  return;
-                }
-                setState(() {
-                  final job = _renderJobs.last;
-                  job.progress += 0.2;
-                  if (job.progress >= 1.0) {
-                    job.progress = 1.0;
-                    job.status = RenderStatus.completed;
-                    t.cancel();
-                  }
-                });
-              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Queued render to $outPath")),
+              );
             },
             child: const Text("Start Render"),
           ),
@@ -241,163 +228,97 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
           height: 44,
           color: StudioTheme.surface,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Text(_project.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: StudioTheme.surfaceElevated, borderRadius: BorderRadius.circular(4)),
-                child: const Text("v1.0 .uvsp", style: TextStyle(color: StudioTheme.accentCyan, fontSize: 10)),
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.download, size: 16),
-                label: const Text("Export Video"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: StudioTheme.accentCyan,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text(_project.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: StudioTheme.surfaceElevated, borderRadius: BorderRadius.circular(4)),
+                  child: const Text("v1.0 .uvsp", style: TextStyle(color: StudioTheme.accentCyan, fontSize: 10)),
                 ),
-                onPressed: _openExportDialog,
-              ),
-            ],
+                const SizedBox(width: 16),
+                // Undo & Redo
+                AnimatedBuilder(
+                  animation: ProjectService.instance,
+                  builder: (ctx, _) {
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.undo, size: 18),
+                          tooltip: "Undo (Ctrl+Z)",
+                          onPressed: ProjectService.instance.canUndo
+                              ? () {
+                                  ProjectService.instance.undo();
+                                  setState(() {});
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Undo applied"), duration: Duration(milliseconds: 600)),
+                                  );
+                                }
+                              : null,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.redo, size: 18),
+                          tooltip: "Redo (Ctrl+Y)",
+                          onPressed: ProjectService.instance.canRedo
+                              ? () {
+                                  ProjectService.instance.redo();
+                                  setState(() {});
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Redo applied"), duration: Duration(milliseconds: 600)),
+                                  );
+                                }
+                              : null,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(width: 24),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.download, size: 16),
+                  label: const Text("Export Video"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: StudioTheme.accentCyan,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  onPressed: _openExportDialog,
+                ),
+              ],
+            ),
           ),
         ),
 
         // Middle Section: Preview Monitors (Source & Program) + Inspector Tabs
         Expanded(
           flex: 6,
-          child: Row(
-            children: [
-              // Program Monitor Canvas
-              Expanded(
-                flex: 7,
-                child: Container(
-                  color: Colors.black,
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: AspectRatio(
-                            aspectRatio: 16 / 9,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: StudioTheme.surfaceElevated,
-                                border: Border.all(color: StudioTheme.border),
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Video Surface Simulation
-                                  Row(
-                                    children: [
-                                      Expanded(child: Container(color: const Color(0xFFC0C0C0))),
-                                      Expanded(child: Container(color: const Color(0xFFC0C000))),
-                                      Expanded(child: Container(color: const Color(0xFF00C0C0))),
-                                      Expanded(child: Container(color: const Color(0xFF00C000))),
-                                      Expanded(child: Container(color: const Color(0xFFC000C0))),
-                                      Expanded(child: Container(color: const Color(0xFFC00000))),
-                                      Expanded(child: Container(color: const Color(0xFF0000C0))),
-                                    ],
-                                  ),
-                                  // Selected Clip Badge
-                                  if (_selectedClip != null)
-                                    Positioned(
-                                      top: 10,
-                                      left: 10,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        color: Colors.black.withOpacity(0.6),
-                                        child: Text("Active: ${_selectedClip!.name}",
-                                            style: const TextStyle(color: Colors.white, fontSize: 11)),
-                                      ),
-                                    ),
-                                  // Timecode Display
-                                  Positioned(
-                                    top: 10,
-                                    right: 10,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      color: Colors.black.withOpacity(0.7),
-                                      child: Text(
-                                        timecode.formatTimecode(_playheadTime),
-                                        style: const TextStyle(
-                                          fontFamily: 'monospace',
-                                          color: StudioTheme.accentCyan,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Transport Bar
-                      Container(
-                        height: 40,
-                        color: StudioTheme.surfaceElevated,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.skip_previous, size: 20),
-                              onPressed: () => setState(() => _playheadTime = 0.0),
-                            ),
-                            IconButton(
-                              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, size: 24, color: StudioTheme.accentCyan),
-                              onPressed: _togglePlayPause,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.skip_next, size: 20),
-                              onPressed: () => setState(() => _playheadTime = _project.duration),
-                            ),
-                            const SizedBox(width: 16),
-                            Text(
-                              "${timecode.formatTimecode(_playheadTime)} / ${timecode.formatTimecode(_project.duration)}",
-                              style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: StudioTheme.textSecondary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 750;
+              final programMonitor = _buildProgramMonitor(timecode);
+              final sidePanel = _buildSidePanel();
 
-              // Side Tabbed Panel (Inspector / Color / Audio / Subtitles / Render Queue)
-              Container(
-                width: 340,
-                color: StudioTheme.surface,
-                child: Column(
+              if (isCompact) {
+                return Column(
                   children: [
-                    // Tab Bar
-                    Container(
-                      height: 46,
-                      color: StudioTheme.surfaceElevated,
-                      child: Row(
-                        children: [
-                          _buildTabButton(0, "Inspector", Icons.tune),
-                          _buildTabButton(1, "Color", Icons.palette),
-                          _buildTabButton(2, "Audio", Icons.equalizer),
-                          _buildTabButton(3, "Subtitles", Icons.subtitles),
-                          _buildTabButton(4, "Queue", Icons.queue),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildSidePanelContent(),
-                    ),
+                    Expanded(flex: 5, child: programMonitor),
+                    Expanded(flex: 5, child: sidePanel),
                   ],
-                ),
-              ),
-            ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(flex: 7, child: programMonitor),
+                  SizedBox(width: 340, child: sidePanel),
+                ],
+              );
+            },
           ),
         ),
 
@@ -418,25 +339,176 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
     );
   }
 
+  Widget _buildProgramMonitor(TimecodeHelper timecode) {
+    return Container(
+      color: Colors.black,
+      child: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: StudioTheme.surfaceElevated,
+                    border: Border.all(color: StudioTheme.border),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Video Surface Simulation
+                      Row(
+                        children: [
+                          Expanded(child: Container(color: const Color(0xFFC0C0C0))),
+                          Expanded(child: Container(color: const Color(0xFFC0C000))),
+                          Expanded(child: Container(color: const Color(0xFF00C0C0))),
+                          Expanded(child: Container(color: const Color(0xFF00C000))),
+                          Expanded(child: Container(color: const Color(0xFFC000C0))),
+                          Expanded(child: Container(color: const Color(0xFFC00000))),
+                          Expanded(child: Container(color: const Color(0xFF0000C0))),
+                        ],
+                      ),
+                      // Selected Clip Badge
+                      if (_selectedClip != null)
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: StudioTheme.accentCyan),
+                            ),
+                            child: Text(
+                              "${_selectedClip!.name} (${_selectedClip!.speed}x, opacity: ${(_selectedClip!.opacity * 100).round()}%)",
+                              style: const TextStyle(fontSize: 12, color: StudioTheme.accentCyan, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      // Subtitle rendering preview
+                      if (_subtitleCues.isNotEmpty)
+                        Positioned(
+                          bottom: 24,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            color: Colors.black.withOpacity(0.75),
+                            child: Text(
+                              _subtitleCues.last["text"] ?? "",
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      // Timecode HUD
+                      Positioned(
+                        bottom: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            timecode.formatTimecode(_playheadTime),
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              color: StudioTheme.accentCyan,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Transport Bar
+          Container(
+            height: 40,
+            color: StudioTheme.surfaceElevated,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.skip_previous, size: 20),
+                    onPressed: () => setState(() => _playheadTime = 0.0),
+                  ),
+                  IconButton(
+                    icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, size: 24, color: StudioTheme.accentCyan),
+                    onPressed: _togglePlayPause,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.skip_next, size: 20),
+                    onPressed: () => setState(() => _playheadTime = _project.duration),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    "${timecode.formatTimecode(_playheadTime)} / ${timecode.formatTimecode(_project.duration)}",
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: StudioTheme.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidePanel() {
+    return Container(
+      color: StudioTheme.surface,
+      child: Column(
+        children: [
+          // Tab Bar
+          Container(
+            height: 46,
+            color: StudioTheme.surfaceElevated,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(width: 68, child: _buildTabButton(0, "Inspector", Icons.tune)),
+                  SizedBox(width: 68, child: _buildTabButton(1, "Color", Icons.palette)),
+                  SizedBox(width: 68, child: _buildTabButton(2, "Audio", Icons.equalizer)),
+                  SizedBox(width: 68, child: _buildTabButton(3, "Subtitles", Icons.subtitles)),
+                  SizedBox(width: 68, child: _buildTabButton(4, "Queue", Icons.queue)),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: _buildSidePanelContent(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTabButton(int index, String label, IconData icon) {
     final isSelected = _sidePanelTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _sidePanelTab = index),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected ? StudioTheme.surface : Colors.transparent,
-            border: Border(bottom: BorderSide(color: isSelected ? StudioTheme.accentCyan : Colors.transparent, width: 2)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 14, color: isSelected ? StudioTheme.accentCyan : StudioTheme.textSecondary),
-              const SizedBox(height: 2),
-              Text(label, style: TextStyle(fontSize: 9, color: isSelected ? StudioTheme.accentCyan : StudioTheme.textSecondary)),
-            ],
-          ),
+    return GestureDetector(
+      onTap: () => setState(() => _sidePanelTab = index),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected ? StudioTheme.surface : Colors.transparent,
+          border: Border(bottom: BorderSide(color: isSelected ? StudioTheme.accentCyan : Colors.transparent, width: 2)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: isSelected ? StudioTheme.accentCyan : StudioTheme.textSecondary),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(fontSize: 9, color: isSelected ? StudioTheme.accentCyan : StudioTheme.textSecondary)),
+          ],
         ),
       ),
     );
@@ -516,6 +588,81 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
             max: 2.0,
             onChanged: (v) => setState(() => _selectedClip!.volume = v),
           ),
+          const SizedBox(height: 8),
+          const Text("Keyframes & Transitions", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add_chart, size: 14),
+                  label: const Text("Add Keyframe", style: TextStyle(fontSize: 11)),
+                  style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.surfaceElevated),
+                  onPressed: () {
+                    final track = _project.tracks.firstWhere((t) => t.clips.contains(_selectedClip));
+                    ProjectService.instance.addKeyframe(
+                      track.id,
+                      _selectedClip!.id,
+                      'opacity',
+                      _playheadTime,
+                      _selectedClip!.opacity,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Keyframe added at ${TimecodeHelper.formatDurationSeconds(_playheadTime)}")),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.auto_awesome, size: 14),
+                  label: const Text("Cross Dissolve", style: TextStyle(fontSize: 11)),
+                  style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.surfaceElevated),
+                  onPressed: () {
+                    final track = _project.tracks.firstWhere((t) => t.clips.contains(_selectedClip));
+                    ProjectService.instance.setTransition(
+                      track.id,
+                      _selectedClip!.id,
+                      'CrossDissolve',
+                      1.0,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Set Cross Dissolve transition")),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text("Precision Trimming (Slip / Slide)", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    final track = _project.tracks.firstWhere((t) => t.clips.contains(_selectedClip));
+                    ProjectService.instance.slipEdit(track.id, _selectedClip!.id, -0.5);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Slipped clip -0.5s")));
+                  },
+                  child: const Text("Slip -0.5s", style: TextStyle(fontSize: 10)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    final track = _project.tracks.firstWhere((t) => t.clips.contains(_selectedClip));
+                    ProjectService.instance.slideEdit(track.id, _selectedClip!.id, 0.5);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Slid clip +0.5s")));
+                  },
+                  child: const Text("Slide +0.5s", style: TextStyle(fontSize: 10)),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -527,14 +674,45 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Subtitles & Closed Captions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text(
+                  "Subtitles & Closed Captions",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle, color: StudioTheme.accentCyan, size: 20),
+                tooltip: "Add Cue at Playhead",
+                onPressed: () {
+                  final inTc = const TimecodeHelper(fpsNum: 30, fpsDen: 1).formatTimecode(_playheadTime);
+                  final outTc = const TimecodeHelper(fpsNum: 30, fpsDen: 1).formatTimecode(_playheadTime + 2.0);
+                  setState(() {
+                    _subtitleCues.add({
+                      "in": inTc,
+                      "out": outTc,
+                      "text": "New Subtitle Cue at $inTc",
+                    });
+                  });
+                  ProjectService.instance.addSubtitleCue(_playheadTime, _playheadTime + 2.0, "New Subtitle Cue");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Added subtitle cue: at $inTc")),
+                  );
+                },
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Expanded(
-            child: ListView(
-              children: [
-                _buildSubtitleRow("00:00:00:15", "00:00:02:00", "Universal Video Studio - Production Ready"),
-                _buildSubtitleRow("00:00:02:05", "00:00:04:00", "High Performance Non-Destructive Video NLE"),
-              ],
+            child: ListView.builder(
+              itemCount: _subtitleCues.length,
+              itemBuilder: (ctx, idx) {
+                final cue = _subtitleCues[idx];
+                return _buildSubtitleRow(cue["in"]!, cue["out"]!, cue["text"]!);
+              },
             ),
           ),
         ],
@@ -570,72 +748,107 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   }
 
   Widget _buildRenderQueue() {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Render & Export Queue", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          const SizedBox(height: 8),
-          if (_renderJobs.isEmpty)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: Text("No jobs in queue. Click 'Export Video' to start render.",
-                    style: TextStyle(color: StudioTheme.textMuted, fontSize: 12)),
-              ),
-            )
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: _renderJobs.length,
-                itemBuilder: (ctx, idx) {
-                  final job = _renderJobs[idx];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: StudioTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: StudioTheme.border),
+    return AnimatedBuilder(
+      animation: RenderService.instance,
+      builder: (context, _) {
+        final jobs = RenderService.instance.jobs;
+        return Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      "Render & Export Queue",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+                  if (jobs.any((j) => j.status == RenderStatus.completed || j.status == RenderStatus.cancelled))
+                    TextButton(
+                      onPressed: () => RenderService.instance.clearCompleted(),
+                      child: const Text("Clear Done", style: TextStyle(fontSize: 11)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (jobs.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 40),
+                    child: Text("No jobs in queue. Click 'Export Video' to start render.",
+                        style: TextStyle(color: StudioTheme.textMuted, fontSize: 12)),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: jobs.length,
+                    itemBuilder: (ctx, idx) {
+                      final job = jobs[idx];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: StudioTheme.surfaceElevated,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: StudioTheme.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(job.name,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                                  overflow: TextOverflow.ellipsis),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(job.name,
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                                      overflow: TextOverflow.ellipsis),
+                                ),
+                                if (job.status == RenderStatus.rendering)
+                                  IconButton(
+                                    icon: const Icon(Icons.cancel, size: 16, color: StudioTheme.accentRed),
+                                    tooltip: "Cancel Render",
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => RenderService.instance.cancelJob(job.id),
+                                  ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  job.status == RenderStatus.completed
+                                      ? "DONE"
+                                      : (job.status == RenderStatus.cancelled ? "CANCELLED" : "${(job.progress * 100).round()}%"),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: job.status == RenderStatus.completed
+                                        ? StudioTheme.accentEmerald
+                                        : (job.status == RenderStatus.cancelled ? StudioTheme.accentRed : StudioTheme.accentCyan),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              job.status == RenderStatus.completed ? "DONE" : "${(job.progress * 100).round()}%",
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: job.status == RenderStatus.completed ? StudioTheme.accentEmerald : StudioTheme.accentCyan,
-                              ),
+                            const SizedBox(height: 6),
+                            LinearProgressIndicator(
+                              value: job.progress,
+                              backgroundColor: StudioTheme.surfaceHighlight,
+                              color: job.status == RenderStatus.completed ? StudioTheme.accentEmerald : StudioTheme.accentCyan,
                             ),
+                            const SizedBox(height: 4),
+                            Text(job.outputPath, style: const TextStyle(fontSize: 10, color: StudioTheme.textMuted)),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        LinearProgressIndicator(
-                          value: job.progress,
-                          backgroundColor: StudioTheme.surfaceHighlight,
-                          color: job.status == RenderStatus.completed ? StudioTheme.accentEmerald : StudioTheme.accentCyan,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(job.outputPath, style: const TextStyle(fontSize: 10, color: StudioTheme.textMuted)),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-        ],
-      ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

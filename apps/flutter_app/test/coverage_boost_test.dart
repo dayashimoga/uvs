@@ -17,6 +17,7 @@ import 'package:universal_video_studio/src/models/track_model.dart';
 import 'package:universal_video_studio/src/models/clip_model.dart';
 import 'package:universal_video_studio/src/services/recording_service.dart';
 import 'package:universal_video_studio/src/services/render_service.dart';
+import 'package:universal_video_studio/src/services/media_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -699,6 +700,399 @@ void main() {
       await tester.tap(insertBtn);
       await tester.pumpAndSettle();
       expect(find.textContaining("Successfully committed"), findsOneWidget);
+    });
+
+    test('UvsFfiBridge and ProjectService extended mutations (keyframes, transitions, subtitles, audio lag, undo/redo)', () {
+      final bridge = UvsFfiBridge.instance;
+      var p = bridge.createProject(name: 'ExtendedMutations');
+      p = bridge.timelineAddClip(p, 'v1', 'Clip 1', 'media.mp4', 0.0, 5.0);
+      final tracks = p['timeline']['tracks'] as List;
+      final v1 = tracks.firstWhere((t) => t['id'] == 'v1');
+      final clip1Id = (v1['clips'] as List).first['id'] as String;
+
+      // Add keyframes
+      p = bridge.timelineAddKeyframe(p, 'v1', clip1Id, 'opacity', 1.0, 0.5, easing: 1);
+      p = bridge.timelineAddKeyframe(p, 'v1', clip1Id, 'opacity', 3.0, 1.0, easing: 2);
+      p = bridge.timelineAddKeyframe(p, 'v1', clip1Id, 'scale', 2.0, 1.5, easing: 3);
+
+      // Add transitions
+      p = bridge.timelineSetTransition(p, 'v1', clip1Id, 'CrossDissolve', 1.0, isOut: false);
+      p = bridge.timelineSetTransition(p, 'v1', clip1Id, 'FadeToBlack', 0.5, isOut: true);
+
+      // Add subtitle cue
+      p = bridge.timelineAddSubtitleCue(p, 0.5, 2.5, 'Test Subtitle Cue');
+
+      // Check structures
+      final subTrack = (p['timeline']['tracks'] as List).firstWhere((t) => t['track_type'] == 'Subtitle');
+      expect((subTrack['clips'] as List).isNotEmpty, isTrue);
+
+      // Audio correlation lag
+      final lag1 = bridge.computeAudioCorrelationLag([1.0, 0.0, 1.0], [0.0, 1.0, 0.0]);
+      expect(lag1.abs() <= 48000, isTrue);
+      final lagEmpty = bridge.computeAudioCorrelationLag([], []);
+      expect(lagEmpty, 0);
+
+      // Undo/Redo stack operations
+      bridge.clearUndoRedo();
+      expect(bridge.canUndo(), isFalse);
+      expect(bridge.canRedo(), isFalse);
+      bridge.pushUndoState(p);
+      expect(bridge.canUndo(), isTrue);
+
+      var p2 = Map<String, dynamic>.from(p);
+      p2['name'] = 'Modified';
+      final undone = bridge.undo(p2);
+      expect(undone != null, isTrue);
+      expect(undone!['name'], 'ExtendedMutations');
+      expect(bridge.canRedo(), isTrue);
+
+      final redone = bridge.redo(undone);
+      expect(redone != null, isTrue);
+      expect(redone!['name'], 'Modified');
+
+      // ProjectService methods
+      final ps = ProjectService.instance;
+      ps.newProject(name: 'PS_Mutations');
+      ps.addTrack('V2', 'Video', 1);
+      final psTracks = ps.project['timeline']['tracks'] as List;
+      final v2Id = psTracks.last['id'] as String;
+      ps.addClip(v2Id, 'PS_Clip', 'test.mp4', 0.0, 4.0);
+      final psClipId = (psTracks.last['clips'] as List).first['id'] as String;
+
+      ps.addKeyframe(v2Id, psClipId, 'opacity', 2.0, 0.8);
+      ps.setTransition(v2Id, psClipId, 'Wipe', 0.75, isOut: false);
+      ps.addSubtitleCue(1.0, 3.0, 'PS Subtitle');
+      ps.setClipSpeed(v2Id, psClipId, 1.5, false);
+      ps.addMarker(2.5, 'Marker 1', '#FF0000', 'Comment');
+      ps.slipEdit(v2Id, psClipId, 0.2);
+      ps.slideEdit(v2Id, psClipId, 0.1);
+
+      expect(ps.canUndo, isTrue);
+      ps.undo();
+      expect(ps.canRedo, isTrue);
+      ps.redo();
+    });
+
+    testWidgets('PlayerModeView full user interactions (file dialog, snapshot, audio sync, A-B repeat)', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: PlayerModeView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Open media file dialog
+      final openBtn = find.byTooltip("Open Media File");
+      expect(openBtn, findsOneWidget);
+      await tester.tap(openBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text("Open Media File"), findsOneWidget);
+      await tester.tap(find.text("Sample 4K"));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text("Load Media"));
+      await tester.pumpAndSettle();
+      ScaffoldMessenger.maybeOf(tester.element(find.byType(PlayerModeView)))?.clearSnackBars();
+      await tester.pumpAndSettle();
+
+      // Frame stepping
+      await tester.tap(find.byTooltip("Next Frame (Right Arrow)"), warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byTooltip("Previous Frame (Left Arrow)"), warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Play/Pause
+      await tester.tap(find.byTooltip("Play / Pause (Space)"), warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byTooltip("Play / Pause (Space)"), warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Audio sync dialog
+      final syncBtn = find.byTooltip("Audio Sync");
+      expect(syncBtn, findsOneWidget);
+      await tester.ensureVisible(syncBtn);
+      await tester.tap(syncBtn, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      expect(find.text("Audio Sync Calibration"), findsOneWidget);
+      final syncSlider = find.byType(Slider);
+      if (syncSlider.evaluate().isNotEmpty) {
+        await tester.drag(syncSlider.first, const Offset(30, 0), warnIfMissed: false);
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text("Close"), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      ScaffoldMessenger.maybeOf(tester.element(find.byType(PlayerModeView)))?.clearSnackBars();
+      await tester.pumpAndSettle();
+
+      // Snapshot capture
+      final snapBtn = find.byTooltip("Capture Snapshot");
+      expect(snapBtn, findsOneWidget);
+      await tester.ensureVisible(snapBtn);
+      await tester.tap(snapBtn, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.textContaining("Captured frame snapshot"), findsOneWidget);
+
+      ScaffoldMessenger.maybeOf(tester.element(find.byType(PlayerModeView)))?.clearSnackBars();
+      await tester.pumpAndSettle();
+
+      // A-B repeat
+      await tester.ensureVisible(find.text("Set A"));
+      await tester.tap(find.text("Set A"));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Set B"));
+      await tester.pumpAndSettle();
+      final clearAb = find.byTooltip("Clear A-B Repeat");
+      if (clearAb.evaluate().isNotEmpty) {
+        await tester.tap(clearAb);
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('StudioEditorModeView advanced inspector tools and undo/redo', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: const Scaffold(
+            body: StudioEditorModeView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Add keyframe button
+      final addKfBtn = find.text("Add Keyframe");
+      if (addKfBtn.evaluate().isNotEmpty) {
+        await tester.ensureVisible(addKfBtn);
+        await tester.tap(addKfBtn);
+        await tester.pumpAndSettle();
+        expect(find.textContaining("Keyframe added"), findsOneWidget);
+        ScaffoldMessenger.of(tester.element(find.byType(Scaffold))).clearSnackBars();
+        await tester.pumpAndSettle();
+      }
+
+      // Cross dissolve button
+      final transBtn = find.text("Cross Dissolve");
+      if (transBtn.evaluate().isNotEmpty) {
+        await tester.ensureVisible(transBtn);
+        await tester.tap(transBtn);
+        await tester.pumpAndSettle();
+        expect(find.textContaining("Set Cross Dissolve"), findsOneWidget);
+        ScaffoldMessenger.of(tester.element(find.byType(Scaffold))).clearSnackBars();
+        await tester.pumpAndSettle();
+      }
+
+      // Slip / Slide buttons
+      final slipBtn = find.text("Slip -0.5s");
+      if (slipBtn.evaluate().isNotEmpty) {
+        await tester.ensureVisible(slipBtn);
+        await tester.tap(slipBtn);
+        await tester.pumpAndSettle();
+        expect(find.textContaining("Slipped clip"), findsOneWidget);
+        ScaffoldMessenger.of(tester.element(find.byType(Scaffold))).clearSnackBars();
+        await tester.pumpAndSettle();
+      }
+      final slideBtn = find.text("Slide +0.5s");
+      if (slideBtn.evaluate().isNotEmpty) {
+        await tester.ensureVisible(slideBtn);
+        await tester.tap(slideBtn);
+        await tester.pumpAndSettle();
+        expect(find.textContaining("Slid clip"), findsOneWidget);
+        ScaffoldMessenger.of(tester.element(find.byType(Scaffold))).clearSnackBars();
+        await tester.pumpAndSettle();
+      }
+
+      // Subtitles tab cue addition
+      await tester.tap(find.byIcon(Icons.subtitles).first);
+      await tester.pumpAndSettle();
+      final addCueBtn = find.byTooltip("Add Cue at Playhead");
+      if (addCueBtn.evaluate().isNotEmpty) {
+        await tester.tap(addCueBtn);
+        await tester.pumpAndSettle();
+        expect(find.textContaining("Added subtitle cue"), findsOneWidget);
+      }
+
+      // Undo button
+      final undoBtn = find.byTooltip("Undo (Ctrl+Z)");
+      if (undoBtn.evaluate().isNotEmpty) {
+        await tester.tap(undoBtn);
+        await tester.pumpAndSettle();
+      }
+      final redoBtn = find.byTooltip("Redo (Ctrl+Y)");
+      if (redoBtn.evaluate().isNotEmpty) {
+        await tester.tap(redoBtn);
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('MultiViewModeView stream failure recovery and volume interactions', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: MultiViewModeView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Switch to 3x3 layout
+      final dropdown = find.text("Layout 2x2");
+      expect(dropdown, findsOneWidget);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Layout 3x3").last);
+      await tester.pumpAndSettle();
+
+      // Simulate connection drop on a feed
+      final bugButtons = find.byTooltip("Simulate Connection Drop / Recovery");
+      if (bugButtons.evaluate().isNotEmpty) {
+        await tester.tap(bugButtons.first);
+        await tester.pumpAndSettle();
+        expect(find.text("Signal Lost / Disconnected"), findsOneWidget);
+
+        // Tap reconnect button
+        final reconnectBtn = find.text("Reconnect Feed");
+        expect(reconnectBtn, findsOneWidget);
+        await tester.tap(reconnectBtn);
+        await tester.pumpAndSettle();
+        expect(find.textContaining("reconnected successfully"), findsOneWidget);
+      }
+    });
+
+    test('MediaService caching and real file probe', () {
+      final ms = MediaService.instance;
+      final tempFile = File('${Directory.systemTemp.path}/probe_test.mp4');
+      tempFile.writeAsStringSync('dummy video probe content 1234567890');
+      try {
+        final probe1 = ms.probeMedia(tempFile.path);
+        expect(probe1.path, tempFile.path);
+        // Hit cache branch
+        final probe2 = ms.probeMedia(tempFile.path);
+        expect(probe2.durationSeconds, probe1.durationSeconds);
+
+        final wf1 = ms.getWaveform(tempFile.path);
+        expect(wf1.isNotEmpty, isTrue);
+        // Hit waveform cache branch
+        final wf2 = ms.getWaveform(tempFile.path);
+        expect(wf2.length, wf1.length);
+      } finally {
+        if (tempFile.existsSync()) tempFile.deleteSync();
+      }
+    });
+
+    test('RecordingService sources, lifecycle, and ffmpeg capture build', () {
+      final rec = RecordingService.instance;
+      expect(rec.isSourceSupported(RecordingSource.screen), isTrue);
+      expect(rec.isSourceSupported(RecordingSource.camera), isTrue);
+      expect(rec.isSourceSupported(RecordingSource.microphone), isTrue);
+      rec.getCapabilityWarning(RecordingSource.systemAudio);
+      rec.getCapabilityWarning(RecordingSource.screen);
+
+      rec.toggleSource(RecordingSource.camera);
+      rec.toggleSource(RecordingSource.camera);
+
+      final started = rec.startRecording();
+      expect(started, isTrue);
+      expect(rec.isRecording, isTrue);
+      expect(rec.startRecording(), isFalse); // already recording
+
+      final cmd = rec.buildFfmpegCaptureCommand('test_rec.mp4');
+      expect(cmd.contains('ffmpeg'), isTrue);
+
+      final out = rec.stopRecording();
+      expect(out.isNotEmpty, isTrue);
+      expect(rec.isRecording, isFalse);
+      expect(rec.stopRecording(), ''); // already stopped
+    });
+
+    test('RenderService job queue, cancel, and clearCompleted', () {
+      final render = RenderService.instance;
+      final projMap = UvsFfiBridge.instance.createProject(name: 'Render Coverage Test');
+      render.queueRender(
+        project: projMap,
+        inputPath: 'nonexistent_test_render_file.mp4',
+        name: 'Test Render Job',
+        outputPath: '${Directory.systemTemp.path}/render_out_test.mp4',
+      );
+      expect(render.jobs.isNotEmpty, isTrue);
+      final job = render.jobs.last;
+      render.cancelJob(job.id);
+      expect(render.jobs.any((j) => j.id == job.id && j.status == RenderStatus.cancelled), isTrue);
+      render.clearCompleted();
+    });
+
+    testWidgets('ColorInspectorView sliders and LUT dropdown interaction', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: ColorInspectorView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final sliders = find.byType(Slider);
+      expect(sliders, findsWidgets);
+      for (var i = 0; i < sliders.evaluate().length; i++) {
+        await tester.drag(sliders.at(i), const Offset(20, 0));
+        await tester.pumpAndSettle();
+      }
+
+      final dropdown = find.byType(DropdownButton<String>);
+      if (dropdown.evaluate().isNotEmpty) {
+        await tester.tap(dropdown);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Monochrome Noir').last);
+        await tester.pumpAndSettle();
+        expect(find.text('Monochrome Noir'), findsOneWidget);
+      }
+    });
+
+    testWidgets('AudioMixerView faders, mute and solo interaction', (WidgetTester tester) async {
+      final proj = ProjectModel.createDefault();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AudioMixerView(project: proj),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final sliders = find.byType(Slider);
+      expect(sliders, findsWidgets);
+      for (var i = 0; i < sliders.evaluate().length; i++) {
+        await tester.drag(sliders.at(i), const Offset(0, -10));
+        await tester.pumpAndSettle();
+      }
+
+      final mBtns = find.text("M");
+      if (mBtns.evaluate().isNotEmpty) {
+        await tester.tap(mBtns.first);
+        await tester.pumpAndSettle();
+      }
+
+      final sBtns = find.text("S");
+      if (sBtns.evaluate().isNotEmpty) {
+        await tester.tap(sBtns.first);
+        await tester.pumpAndSettle();
+      }
     });
   });
 }

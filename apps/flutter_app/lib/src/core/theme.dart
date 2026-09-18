@@ -69,4 +69,64 @@ class StudioTheme {
       ),
     );
   }
+
+  // Crisp Light Mode
+  static const Color lightBackground = Color(0xFFF6F8FA);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightSurfaceElevated = Color(0xFFEAEEF2);
+  static const Color lightSurfaceHighlight = Color(0xFFE1E4E8);
+  static const Color lightBorder = Color(0xFFD0D7DE);
+
+  static const Color lightTextPrimary = Color(0xFF1F2328);
+  static const Color lightTextSecondary = Color(0xFF59636E);
+  static const Color lightTextMuted = Color(0xFF8C959F);
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: lightBackground,
+      colorScheme: const ColorScheme.light(
+        surface: lightSurface,
+        primary: Color(0xFF0969DA),
+        secondary: accentBlue,
+        tertiary: Color(0xFF1A7F37),
+        error: accentRed,
+        onSurface: lightTextPrimary,
+      ),
+      fontFamily: 'Roboto',
+      appBarTheme: const AppBarTheme(
+        backgroundColor: lightSurface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleTextStyle: TextStyle(
+          color: lightTextPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      cardTheme: CardTheme(
+        color: lightSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: lightBorder, width: 1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      sliderTheme: const SliderThemeData(
+        activeTrackColor: Color(0xFF0969DA),
+        thumbColor: Color(0xFF0969DA),
+        inactiveTrackColor: lightSurfaceHighlight,
+        trackHeight: 3.0,
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: lightSurfaceElevated,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: lightBorder),
+        ),
+        textStyle: const TextStyle(color: lightTextPrimary, fontSize: 12),
+      ),
+    );
+  }
 }

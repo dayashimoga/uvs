@@ -20,8 +20,11 @@ class ProjectService extends ChangeNotifier {
     _startAutosave();
   }
 
+  static bool enableAutosave = false;
+
   void _startAutosave() {
     _autosaveTimer?.cancel();
+    if (!enableAutosave) return;
     _autosaveTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (_isDirty && _currentFilePath != null) {
         saveProject(_currentFilePath!);
@@ -84,67 +87,123 @@ class ProjectService extends ChangeNotifier {
     return count;
   }
 
+  bool get canUndo => UvsFfiBridge.instance.canUndo();
+  bool get canRedo => UvsFfiBridge.instance.canRedo();
+
+  void _recordUndo() {
+    UvsFfiBridge.instance.pushUndoState(_project);
+  }
+
+  void undo() {
+    final prev = UvsFfiBridge.instance.undo(_project);
+    if (prev != null) {
+      _project = prev;
+      _isDirty = true;
+      notifyListeners();
+    }
+  }
+
+  void redo() {
+    final next = UvsFfiBridge.instance.redo(_project);
+    if (next != null) {
+      _project = next;
+      _isDirty = true;
+      notifyListeners();
+    }
+  }
+
   void addTrack(String name, String trackType, int zIndex) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineAddTrack(_project, name, trackType, zIndex);
     _isDirty = true;
     notifyListeners();
   }
 
   void addClip(String trackId, String clipName, String mediaPath, double startS, double durationS) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineAddClip(_project, trackId, clipName, mediaPath, startS, durationS);
     _isDirty = true;
     notifyListeners();
   }
 
   void splitClip(String trackId, String clipId, double splitTimeS) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineSplitClip(_project, trackId, clipId, splitTimeS);
     _isDirty = true;
     notifyListeners();
   }
 
   void rippleDelete(String trackId, String clipId) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineRippleDelete(_project, trackId, clipId);
     _isDirty = true;
     notifyListeners();
   }
 
   void rollEdit(String trackId, String leftClipId, String rightClipId, double deltaS) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineRollEdit(_project, trackId, leftClipId, rightClipId, deltaS);
     _isDirty = true;
     notifyListeners();
   }
 
   void slipEdit(String trackId, String clipId, double deltaS) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineSlipEdit(_project, trackId, clipId, deltaS);
     _isDirty = true;
     notifyListeners();
   }
 
   void slideEdit(String trackId, String clipId, double deltaS) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineSlideEdit(_project, trackId, clipId, deltaS);
     _isDirty = true;
     notifyListeners();
   }
 
   void setClipSpeed(String trackId, String clipId, double speed, bool reverse) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineSetSpeed(_project, trackId, clipId, speed, reverse);
     _isDirty = true;
     notifyListeners();
   }
 
   void addMarker(double timeS, String name, String color, String comment) {
+    _recordUndo();
     _project = UvsFfiBridge.instance.timelineAddMarker(_project, timeS, name, color, comment);
+    _isDirty = true;
+    notifyListeners();
+  }
+
+  void addKeyframe(String trackId, String clipId, String property, double timeS, double value, {int easing = 0}) {
+    _recordUndo();
+    _project = UvsFfiBridge.instance.timelineAddKeyframe(_project, trackId, clipId, property, timeS, value, easing: easing);
+    _isDirty = true;
+    notifyListeners();
+  }
+
+  void setTransition(String trackId, String clipId, String transitionType, double durationS, {bool isOut = false}) {
+    _recordUndo();
+    _project = UvsFfiBridge.instance.timelineSetTransition(_project, trackId, clipId, transitionType, durationS, isOut: isOut);
+    _isDirty = true;
+    notifyListeners();
+  }
+
+  void addSubtitleCue(double startS, double endS, String text) {
+    _recordUndo();
+    _project = UvsFfiBridge.instance.timelineAddSubtitleCue(_project, startS, endS, text);
     _isDirty = true;
     notifyListeners();
   }
 
   void insertMulticamCuts(List<Map<String, dynamic>> cuts) {
     if (cuts.isEmpty) return;
+    _recordUndo();
     final timeline = _project['timeline'] as Map<String, dynamic>? ?? {};
     final tracks = (timeline['tracks'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     var vTrack = tracks.firstWhere((t) => t['track_type'] == 'Video', orElse: () => {});
     if (vTrack.isEmpty) {
-      addTrack('V1', 'Video', 0);
+      _project = UvsFfiBridge.instance.timelineAddTrack(_project, 'V1', 'Video', 0);
     }
     final updatedTracks = ((_project['timeline']?['tracks'] as List?)?.cast<Map<String, dynamic>>() ?? []);
     final vTrackId = updatedTracks.firstWhere((t) => t['track_type'] == 'Video')['id'] as String? ?? 'track-v1';
@@ -157,12 +216,11 @@ class ProjectService extends ChangeNotifier {
           : 4.0;
       final name = cut['name'] as String? ?? 'Angle Cut ${i + 1}';
       final path = cut['media_path'] as String? ?? 'media_${i + 1}.mp4';
-      addClip(vTrackId, name, path, start, dur > 0 ? dur : 4.0);
+      _project = UvsFfiBridge.instance.timelineAddClip(_project, vTrackId, name, path, start, dur > 0 ? dur : 4.0);
     }
     _isDirty = true;
     notifyListeners();
   }
-
 
   @override
   void dispose() {

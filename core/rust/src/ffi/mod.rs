@@ -12,7 +12,11 @@ use crate::multicam::find_audio_sync_lag;
 use crate::project::Project;
 use crate::render::{build_ffmpeg_render_args, execute_ffmpeg_render, HardwareCapabilities};
 use crate::subtitles::SubtitleTrack;
-use crate::timeline::{Clip, Marker, RationalTime, TimecodeConfig, Track, TrackType};
+use crate::timeline::{
+    Clip, Interpolation, Keyframe, KeyframeTrack, Marker, RationalTime, TimecodeConfig, Track,
+    TrackType, Transition, TransitionType,
+};
+use crate::undo::{Action, UndoStack};
 use std::path::PathBuf;
 
 fn to_c_string(s: impl AsRef<str>) -> *mut c_char {
@@ -935,5 +939,288 @@ pub extern "C" fn uvs_free_string(ptr: *mut c_char) {
         unsafe {
             let _ = CString::from_raw(ptr);
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_undo_stack_new(max_capacity: usize) -> *mut UndoStack {
+    let cap = if max_capacity == 0 { 50 } else { max_capacity };
+    Box::into_raw(Box::new(UndoStack::new(cap)))
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_undo_stack_free(stack_ptr: *mut UndoStack) {
+    if !stack_ptr.is_null() {
+        unsafe {
+            let _ = Box::from_raw(stack_ptr);
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_undo_stack_can_undo(stack_ptr: *const UndoStack) -> c_int {
+    if stack_ptr.is_null() {
+        return 0;
+    }
+    let stack = unsafe { &*stack_ptr };
+    if stack.can_undo() {
+        1
+    } else {
+        0
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_undo_stack_can_redo(stack_ptr: *const UndoStack) -> c_int {
+    if stack_ptr.is_null() {
+        return 0;
+    }
+    let stack = unsafe { &*stack_ptr };
+    if stack.can_redo() {
+        1
+    } else {
+        0
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_undo_stack_push(
+    stack_ptr: *mut UndoStack,
+    action_json: *const c_char,
+) -> c_int {
+    if stack_ptr.is_null() || action_json.is_null() {
+        return -1;
+    }
+    let res = catch_unwind(|| {
+        let a_str = unsafe { CStr::from_ptr(action_json).to_str().unwrap_or("") };
+        match serde_json::from_str::<Action>(a_str) {
+            Ok(action) => {
+                let stack = unsafe { &mut *stack_ptr };
+                stack.push_action(action);
+                0
+            }
+            Err(_) => -2,
+        }
+    });
+    res.unwrap_or(-3)
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_undo_stack_undo(
+    stack_ptr: *mut UndoStack,
+    project_json: *const c_char,
+) -> *mut c_char {
+    if stack_ptr.is_null() || project_json.is_null() {
+        return err_json("Null argument to uvs_undo_stack_undo");
+    }
+    let res = catch_unwind(|| {
+        let p_str = unsafe { CStr::from_ptr(project_json).to_str().unwrap_or("") };
+        let mut proj = Project::from_json(p_str).map_err(|e| e.to_string())?;
+        let stack = unsafe { &mut *stack_ptr };
+        stack.undo(&mut proj).map_err(|e| e.to_string())?;
+        proj.to_json().map_err(|e| e.to_string())
+    });
+    match res {
+        Ok(Ok(json)) => to_c_string(json),
+        Ok(Err(e)) => err_json(&e),
+        Err(_) => err_json("Panic in uvs_undo_stack_undo"),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_undo_stack_redo(
+    stack_ptr: *mut UndoStack,
+    project_json: *const c_char,
+) -> *mut c_char {
+    if stack_ptr.is_null() || project_json.is_null() {
+        return err_json("Null argument to uvs_undo_stack_redo");
+    }
+    let res = catch_unwind(|| {
+        let p_str = unsafe { CStr::from_ptr(project_json).to_str().unwrap_or("") };
+        let mut proj = Project::from_json(p_str).map_err(|e| e.to_string())?;
+        let stack = unsafe { &mut *stack_ptr };
+        stack.redo(&mut proj).map_err(|e| e.to_string())?;
+        proj.to_json().map_err(|e| e.to_string())
+    });
+    match res {
+        Ok(Ok(json)) => to_c_string(json),
+        Ok(Err(e)) => err_json(&e),
+        Err(_) => err_json("Panic in uvs_undo_stack_redo"),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_clip_add_keyframe(
+    project_json: *const c_char,
+    track_id: *const c_char,
+    clip_id: *const c_char,
+    prop_name: *const c_char,
+    time_s: f64,
+    value: f64,
+    interp_type: c_int,
+) -> *mut c_char {
+    if project_json.is_null() || track_id.is_null() || clip_id.is_null() || prop_name.is_null() {
+        return err_json("Null argument to uvs_clip_add_keyframe");
+    }
+    let res = catch_unwind(|| {
+        let p_str = unsafe { CStr::from_ptr(project_json).to_str().unwrap_or("") };
+        let t_id = unsafe { CStr::from_ptr(track_id).to_str().unwrap_or("") };
+        let c_id = unsafe { CStr::from_ptr(clip_id).to_str().unwrap_or("") };
+        let prop = unsafe { CStr::from_ptr(prop_name).to_str().unwrap_or("") };
+
+        let mut proj = Project::from_json(p_str).map_err(|e| e.to_string())?;
+        let track = proj
+            .timeline
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == t_id)
+            .ok_or_else(|| format!("Track not found: {}", t_id))?;
+        let clip = track
+            .clips
+            .iter_mut()
+            .find(|c| c.id == c_id)
+            .ok_or_else(|| format!("Clip not found: {}", c_id))?;
+
+        let interp = match interp_type {
+            1 => Interpolation::EaseIn,
+            2 => Interpolation::EaseOut,
+            3 => Interpolation::Bezier,
+            _ => Interpolation::Linear,
+        };
+
+        let kf = Keyframe {
+            time: RationalTime::from_f64(time_s),
+            value,
+            interpolation: interp,
+        };
+
+        if let Some(kt) = clip
+            .keyframe_tracks
+            .iter_mut()
+            .find(|k| k.property_name == prop)
+        {
+            kt.add_keyframe(kf);
+        } else {
+            let mut kt = KeyframeTrack::new(prop);
+            kt.add_keyframe(kf);
+            clip.keyframe_tracks.push(kt);
+        }
+
+        proj.to_json().map_err(|e| e.to_string())
+    });
+
+    match res {
+        Ok(Ok(json)) => to_c_string(json),
+        Ok(Err(e)) => err_json(&e),
+        Err(_) => err_json("Panic in uvs_clip_add_keyframe"),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_clip_set_transition(
+    project_json: *const c_char,
+    track_id: *const c_char,
+    clip_id: *const c_char,
+    is_in: c_int,
+    trans_type: c_int,
+    dur_s: f64,
+) -> *mut c_char {
+    if project_json.is_null() || track_id.is_null() || clip_id.is_null() {
+        return err_json("Null argument to uvs_clip_set_transition");
+    }
+    let res = catch_unwind(|| {
+        let p_str = unsafe { CStr::from_ptr(project_json).to_str().unwrap_or("") };
+        let t_id = unsafe { CStr::from_ptr(track_id).to_str().unwrap_or("") };
+        let c_id = unsafe { CStr::from_ptr(clip_id).to_str().unwrap_or("") };
+
+        let mut proj = Project::from_json(p_str).map_err(|e| e.to_string())?;
+        let track = proj
+            .timeline
+            .tracks
+            .iter_mut()
+            .find(|t| t.id == t_id)
+            .ok_or_else(|| format!("Track not found: {}", t_id))?;
+        let clip = track
+            .clips
+            .iter_mut()
+            .find(|c| c.id == c_id)
+            .ok_or_else(|| format!("Clip not found: {}", c_id))?;
+
+        let transition = Transition {
+            id: format!("tr-{}", uuid::Uuid::new_v4()),
+            transition_type: match trans_type {
+                0 => TransitionType::CrossDissolve,
+                1 => TransitionType::FadeColor,
+                2 => TransitionType::WipeLeft,
+                3 => TransitionType::WipeRight,
+                4 => TransitionType::Slide,
+                _ => TransitionType::Zoom,
+            },
+            duration: RationalTime::from_f64(dur_s),
+        };
+
+        if is_in != 0 {
+            clip.transition_in = Some(transition);
+        } else {
+            clip.transition_out = Some(transition);
+        }
+
+        proj.to_json().map_err(|e| e.to_string())
+    });
+
+    match res {
+        Ok(Ok(json)) => to_c_string(json),
+        Ok(Err(e)) => err_json(&e),
+        Err(_) => err_json("Panic in uvs_clip_set_transition"),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_subtitle_add_cue(
+    project_json: *const c_char,
+    start_s: f64,
+    end_s: f64,
+    text: *const c_char,
+) -> *mut c_char {
+    if project_json.is_null() || text.is_null() {
+        return err_json("Null argument to uvs_subtitle_add_cue");
+    }
+    let res = catch_unwind(|| {
+        let p_str = unsafe { CStr::from_ptr(project_json).to_str().unwrap_or("") };
+        let txt = unsafe { CStr::from_ptr(text).to_str().unwrap_or("") };
+
+        let mut proj = Project::from_json(p_str).map_err(|e| e.to_string())?;
+
+        // Find or create subtitle track
+        let sub_track = match proj
+            .timeline
+            .tracks
+            .iter_mut()
+            .find(|t| t.track_type == TrackType::Subtitle)
+        {
+            Some(t) => t,
+            None => {
+                let t = Track::new("Subtitles", TrackType::Subtitle, 99);
+                proj.timeline.add_track(t);
+                proj.timeline
+                    .tracks
+                    .iter_mut()
+                    .find(|t| t.track_type == TrackType::Subtitle)
+                    .unwrap()
+            }
+        };
+
+        let start = RationalTime::from_f64(start_s);
+        let duration = RationalTime::from_f64((end_s - start_s).max(0.1));
+        let clip = Clip::new(txt, "subtitles.srt", start, duration);
+        sub_track.add_clip(clip).map_err(|e| e.to_string())?;
+
+        proj.to_json().map_err(|e| e.to_string())
+    });
+
+    match res {
+        Ok(Ok(json)) => to_c_string(json),
+        Ok(Err(e)) => err_json(&e),
+        Err(_) => err_json("Panic in uvs_subtitle_add_cue"),
     }
 }

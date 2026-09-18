@@ -577,4 +577,212 @@ class UvsFfiBridge {
     }
     return list;
   }
+
+  // Undo / Redo Stack State
+  final List<String> _undoHistory = [];
+  final List<String> _redoHistory = [];
+
+  void pushUndoState(Map<String, dynamic> project) {
+    _undoHistory.add(jsonEncode(project));
+    if (_undoHistory.length > 50) {
+      _undoHistory.removeAt(0);
+    }
+    _redoHistory.clear();
+  }
+
+  bool canUndo() => _undoHistory.isNotEmpty;
+  bool canRedo() => _redoHistory.isNotEmpty;
+
+  Map<String, dynamic>? undo(Map<String, dynamic> currentProject) {
+    if (_undoHistory.isEmpty) return null;
+    _redoHistory.add(jsonEncode(currentProject));
+    final prevJson = _undoHistory.removeLast();
+    return jsonDecode(prevJson) as Map<String, dynamic>;
+  }
+
+  Map<String, dynamic>? redo(Map<String, dynamic> currentProject) {
+    if (_redoHistory.isEmpty) return null;
+    _undoHistory.add(jsonEncode(currentProject));
+    final nextJson = _redoHistory.removeLast();
+    return jsonDecode(nextJson) as Map<String, dynamic>;
+  }
+
+  void clearUndoRedo() {
+    _undoHistory.clear();
+    _redoHistory.clear();
+  }
+
+  // Keyframes
+  Map<String, dynamic> timelineAddKeyframe(
+    Map<String, dynamic> project,
+    String trackId,
+    String clipId,
+    String property,
+    double timeS,
+    double value, {
+    int easing = 0,
+  }) {
+    final timeline = project['timeline'] as Map<String, dynamic>;
+    final tracks = timeline['tracks'] as List<dynamic>;
+    for (final track in tracks) {
+      if (track['id'] == trackId) {
+        final clips = track['clips'] as List<dynamic>;
+        Map<String, dynamic>? clip;
+        for (final c in clips) {
+          if (c is Map<String, dynamic> && c['id'] == clipId) {
+            clip = c;
+            break;
+          }
+        }
+        if (clip != null) {
+          final rawKfTracks = clip['keyframe_tracks'];
+          final List<dynamic> kfTracks = (rawKfTracks is List) ? List<dynamic>.from(rawKfTracks) : <dynamic>[];
+          Map<String, dynamic>? propTrack;
+          for (final t in kfTracks) {
+            if (t is Map && t['property_name'] == property) {
+              propTrack = Map<String, dynamic>.from(t);
+              break;
+            }
+          }
+          if (propTrack == null) {
+            propTrack = {
+              'property_name': property,
+              'keyframes': <dynamic>[],
+            };
+            kfTracks.add(propTrack);
+          }
+          final rawKfs = propTrack['keyframes'];
+          final List<dynamic> keyframes = (rawKfs is List) ? List<dynamic>.from(rawKfs) : <dynamic>[];
+          keyframes.add({
+            'time': timeS,
+            'value': value,
+            'easing': easing == 0 ? 'Linear' : (easing == 1 ? 'EaseIn' : (easing == 2 ? 'EaseOut' : 'Bezier')),
+          });
+          keyframes.sort((a, b) => ((a['time'] as num)).compareTo(b['time'] as num));
+          propTrack['keyframes'] = keyframes;
+          clip['keyframe_tracks'] = kfTracks;
+        }
+        break;
+      }
+    }
+    return project;
+  }
+
+  // Transitions
+  Map<String, dynamic> timelineSetTransition(
+    Map<String, dynamic> project,
+    String trackId,
+    String clipId,
+    String transitionType,
+    double durationS, {
+    bool isOut = false,
+  }) {
+    final timeline = project['timeline'] as Map<String, dynamic>;
+    final tracks = timeline['tracks'] as List<dynamic>;
+    for (final track in tracks) {
+      if (track['id'] == trackId) {
+        final clips = track['clips'] as List<dynamic>;
+        Map<String, dynamic>? clip;
+        for (final c in clips) {
+          if (c is Map<String, dynamic> && c['id'] == clipId) {
+            clip = c;
+            break;
+          }
+        }
+        if (clip != null) {
+          final transObj = {
+            'type': transitionType,
+            'duration': durationS,
+            'alignment': 'Center',
+          };
+          if (isOut) {
+            clip['transition_out'] = transObj;
+          } else {
+            clip['transition_in'] = transObj;
+          }
+        }
+        break;
+      }
+    }
+    return project;
+  }
+
+  // Subtitles
+  Map<String, dynamic> timelineAddSubtitleCue(
+    Map<String, dynamic> project,
+    double startS,
+    double endS,
+    String text,
+  ) {
+    final timeline = project['timeline'] as Map<String, dynamic>;
+    final rawTracks = timeline['tracks'];
+    final List<dynamic> tracks = (rawTracks is List) ? List<dynamic>.from(rawTracks) : <dynamic>[];
+    timeline['tracks'] = tracks;
+    Map<String, dynamic>? subTrack;
+    for (int i = 0; i < tracks.length; i++) {
+      final t = tracks[i];
+      if (t is Map && t['track_type'] == 'Subtitle') {
+        subTrack = Map<String, dynamic>.from(t);
+        tracks[i] = subTrack;
+        break;
+      }
+    }
+    if (subTrack == null) {
+      subTrack = <String, dynamic>{
+        'id': 'sub_${DateTime.now().millisecondsSinceEpoch}',
+        'name': 'Subtitles',
+        'track_type': 'Subtitle',
+        'z_index': 99,
+        'muted': false,
+        'solo': false,
+        'locked': false,
+        'opacity': 1.0,
+        'volume': 1.0,
+        'pan': 0.0,
+        'clips': <dynamic>[],
+      };
+      tracks.add(subTrack);
+    }
+    final rawClips = subTrack['clips'];
+    final List<dynamic> clips = (rawClips is List) ? List<dynamic>.from(rawClips) : <dynamic>[];
+    clips.add(<String, dynamic>{
+      'id': 'cue_${DateTime.now().millisecondsSinceEpoch}',
+      'name': text,
+      'media_path': '',
+      'in_point': 0.0,
+      'out_point': endS - startS,
+      'start_time': startS,
+      'duration': endS - startS,
+      'text': text,
+      'speed': 1.0,
+      'reverse': false,
+      'volume': 1.0,
+      'opacity': 1.0,
+      'blend_mode': 'Normal',
+    });
+    subTrack['clips'] = clips;
+    return project;
+  }
+
+  // Audio Cross-Correlation Lag
+  int computeAudioCorrelationLag(List<double> samplesA, List<double> samplesB, {int maxLag = 48000}) {
+    if (samplesA.isEmpty || samplesB.isEmpty) return 0;
+    int searchRange = maxLag.clamp(0, samplesA.length);
+    double maxCorr = -1e30;
+    int bestLag = 0;
+    for (int lag = -searchRange; lag <= searchRange; lag += 10) {
+      double sum = 0.0;
+      for (int i = 0; i < samplesA.length; i += 20) {
+        int j = i + lag;
+        if (j >= 0 && j < samplesB.length) {
+          sum += samplesA[i] * samplesB[j];
+        }
+      }
+      if (sum > maxCorr) {
+        maxCorr = sum;
+        bestLag = lag;
+      }
+    }
+    return bestLag;
+  }
 }

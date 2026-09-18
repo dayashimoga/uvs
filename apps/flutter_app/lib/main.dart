@@ -7,8 +7,13 @@ import 'src/modes/studio_editor_mode.dart';
 import 'src/modes/multicam_mode.dart';
 import 'src/modes/recording_dialog.dart';
 
+import 'src/services/project_service.dart';
+
+final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  ProjectService.enableAutosave = true;
   runApp(const UniversalVideoStudioApp());
 }
 
@@ -17,11 +22,18 @@ class UniversalVideoStudioApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Universal Video Studio',
-      debugShowCheckedModeBanner: false,
-      theme: StudioTheme.darkTheme,
-      home: const MainStudioShell(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          title: 'Universal Video Studio',
+          debugShowCheckedModeBanner: false,
+          theme: StudioTheme.lightTheme,
+          darkTheme: StudioTheme.darkTheme,
+          themeMode: mode,
+          home: const MainStudioShell(),
+        );
+      },
     );
   }
 }
@@ -149,6 +161,20 @@ class _MainStudioShellState extends State<MainStudioShell> {
             ),
 
           const SizedBox(width: 4),
+          // Theme Toggle Button
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: themeModeNotifier,
+            builder: (ctx, mode, _) {
+              final isDark = mode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined, size: 20),
+                tooltip: isDark ? "Switch to Light Mode" : "Switch to Dark Mode",
+                onPressed: () {
+                  themeModeNotifier.value = isDark ? ThemeMode.light : ThemeMode.dark;
+                },
+              );
+            },
+          ),
           // Record Button
           IconButton(
             icon: const Icon(Icons.fiber_manual_record, color: StudioTheme.accentRed, size: 20),

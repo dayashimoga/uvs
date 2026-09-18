@@ -44,42 +44,45 @@ class _TimelineViewState extends State<TimelineView> {
           height: 36,
           color: StudioTheme.surfaceElevated,
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.content_cut, size: 16),
-                tooltip: "Split at Playhead (S)",
-                onPressed: widget.onSplitAtPlayhead,
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_sweep, size: 16),
-                tooltip: "Ripple Delete Selected (Del)",
-                onPressed: widget.onRippleDeleteSelected,
-              ),
-              const SizedBox(width: 8),
-              // Snapping Toggle
-              FilterChip(
-                label: const Text("Snap", style: TextStyle(fontSize: 11)),
-                selected: _snappingEnabled,
-                onSelected: (v) => setState(() => _snappingEnabled = v),
-                selectedColor: StudioTheme.accentCyan.withOpacity(0.2),
-                checkmarkColor: StudioTheme.accentCyan,
-                visualDensity: VisualDensity.compact,
-              ),
-              const Spacer(),
-              // Zoom Controls
-              const Icon(Icons.zoom_out, size: 16, color: StudioTheme.textSecondary),
-              SizedBox(
-                width: 120,
-                child: Slider(
-                  value: _pixelsPerSecond,
-                  min: 20.0,
-                  max: 200.0,
-                  onChanged: (v) => setState(() => _pixelsPerSecond = v),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.content_cut, size: 16),
+                  tooltip: "Split at Playhead (S)",
+                  onPressed: widget.onSplitAtPlayhead,
                 ),
-              ),
-              const Icon(Icons.zoom_in, size: 16, color: StudioTheme.textSecondary),
-            ],
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep, size: 16),
+                  tooltip: "Ripple Delete Selected (Del)",
+                  onPressed: widget.onRippleDeleteSelected,
+                ),
+                const SizedBox(width: 8),
+                // Snapping Toggle
+                FilterChip(
+                  label: const Text("Snap", style: TextStyle(fontSize: 11)),
+                  selected: _snappingEnabled,
+                  onSelected: (v) => setState(() => _snappingEnabled = v),
+                  selectedColor: StudioTheme.accentCyan.withOpacity(0.2),
+                  checkmarkColor: StudioTheme.accentCyan,
+                  visualDensity: VisualDensity.compact,
+                ),
+                const SizedBox(width: 16),
+                // Zoom Controls
+                const Icon(Icons.zoom_out, size: 16, color: StudioTheme.textSecondary),
+                SizedBox(
+                  width: 120,
+                  child: Slider(
+                    value: _pixelsPerSecond,
+                    min: 20.0,
+                    max: 200.0,
+                    onChanged: (v) => setState(() => _pixelsPerSecond = v),
+                  ),
+                ),
+                const Icon(Icons.zoom_in, size: 16, color: StudioTheme.textSecondary),
+              ],
+            ),
           ),
         ),
 
@@ -91,83 +94,88 @@ class _TimelineViewState extends State<TimelineView> {
               Container(
                 width: 140,
                 color: StudioTheme.surface,
-                child: Column(
-                  children: [
-                    // Empty corner above tracks for timecode ruler alignment
-                    Container(height: 28, color: StudioTheme.surfaceHighlight),
-                    ...widget.project.tracks.map((track) {
-                      return Container(
-                        height: 56,
-                        decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: StudioTheme.border)),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              track.trackType == TrackType.video
-                                  ? Icons.videocam
-                                  : track.trackType == TrackType.audio
-                                      ? Icons.audiotrack
-                                      : Icons.subtitles,
-                              size: 16,
-                              color: track.trackType == TrackType.video
-                                  ? StudioTheme.accentCyan
-                                  : track.trackType == TrackType.audio
-                                      ? StudioTheme.accentEmerald
-                                      : StudioTheme.accentAmber,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                track.name,
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                                overflow: TextOverflow.ellipsis,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: Column(
+                    children: [
+                      // Empty corner above tracks for timecode ruler alignment
+                      Container(height: 28, color: StudioTheme.surfaceHighlight),
+                      ...widget.project.tracks.map((track) {
+                        return Container(
+                          height: 56,
+                          decoration: const BoxDecoration(
+                            border: Border(bottom: BorderSide(color: StudioTheme.border)),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Row(
+                            children: [
+                              Icon(
+                                track.trackType == TrackType.video
+                                    ? Icons.videocam
+                                    : track.trackType == TrackType.audio
+                                        ? Icons.audiotrack
+                                        : Icons.subtitles,
+                                size: 16,
+                                color: track.trackType == TrackType.video
+                                    ? StudioTheme.accentCyan
+                                    : track.trackType == TrackType.audio
+                                        ? StudioTheme.accentEmerald
+                                        : StudioTheme.accentAmber,
                               ),
-                            ),
-                            // Mute button
-                            GestureDetector(
-                              onTap: () => setState(() => track.muted = !track.muted),
-                              child: Icon(
-                                track.muted ? Icons.volume_off : Icons.volume_up,
-                                size: 14,
-                                color: track.muted ? StudioTheme.accentRed : StudioTheme.textSecondary,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  track.name,
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
+                              // Mute button
+                              GestureDetector(
+                                onTap: () => setState(() => track.muted = !track.muted),
+                                child: Icon(
+                                  track.muted ? Icons.volume_off : Icons.volume_up,
+                                  size: 14,
+                                  color: track.muted ? StudioTheme.accentRed : StudioTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
                 ),
               ),
 
               // Right Tracks Canvas
               Expanded(
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: totalTimelineWidth,
-                    child: Stack(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Time Ruler
-                            GestureDetector(
-                              onTapDown: (details) {
-                                double seekSec = details.localPosition.dx / _pixelsPerSecond;
-                                widget.onPlayheadSeek(seekSec.clamp(0.0, widget.project.duration));
-                              },
-                              child: Container(
-                                height: 28,
-                                color: StudioTheme.surfaceHighlight,
-                                child: CustomPaint(
-                                  size: Size(totalTimelineWidth, 28),
-                                  painter: RulerPainter(pixelsPerSecond: _pixelsPerSecond),
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: totalTimelineWidth,
+                      child: Stack(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Time Ruler
+                              GestureDetector(
+                                onTapDown: (details) {
+                                  double seekSec = details.localPosition.dx / _pixelsPerSecond;
+                                  widget.onPlayheadSeek(seekSec.clamp(0.0, widget.project.duration));
+                                },
+                                child: Container(
+                                  height: 28,
+                                  color: StudioTheme.surfaceHighlight,
+                                  child: CustomPaint(
+                                    size: Size(totalTimelineWidth, 28),
+                                    painter: RulerPainter(pixelsPerSecond: _pixelsPerSecond),
+                                  ),
                                 ),
                               ),
-                            ),
 
                             // Track Lanes
                             ...widget.project.tracks.map((track) {
@@ -265,6 +273,7 @@ class _TimelineViewState extends State<TimelineView> {
                   ),
                 ),
               ),
+            ),
             ],
           ),
         ),

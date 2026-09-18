@@ -14,10 +14,14 @@ coverage/
 # Output and temp files
 tests/output/
 dist/
+scratch/
+exports/
 *.tmp
 *.tmp.*
 *.recovery
 *.log
+apps/flutter_app/*.mp4
+apps/flutter_app/exports/
 
 # OS artifacts
 .DS_Store

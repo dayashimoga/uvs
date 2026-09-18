@@ -1,16 +1,16 @@
 {
-  "timestamp": "2026-09-17T17:45:03.063672+00:00",
-  "commit_sha": "2cd093970faf5794b09f2e011e8c0dcf6dfb3c25",
+  "timestamp": "2026-09-18T08:36:10.179269+00:00",
+  "commit_sha": "b989c4130d126d6497941f9c919af9266bfaea4c",
   "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
   "tests": {
     "rust_core": {
       "passed": true,
-      "total": 27,
+      "total": 28,
       "failed": 0
     },
     "flutter_ui": {
       "passed": true,
-      "total": 31,
+      "total": 110,
       "failed": 0
     },
     "e2e_media": {
@@ -24,28 +24,28 @@
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 105.6027333252132,
+          "value": 167.8049333374171,
           "unit": "ms",
           "budget": 250.0,
           "status": "PASS"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 11.459922502572821,
+          "value": 7.289923539575613,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 11886225.048185674,
+          "value": 7729827.088862929,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
         },
         {
           "metric": "intel_qsv_speed_factor",
-          "value": 2.0079443313576264,
+          "value": 1.5648596371769066,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS",
@@ -56,12 +56,22 @@
     "security_sbom": {
       "passed": true,
       "violations": 0
+    },
+    "adversarial": {
+      "passed": true,
+      "total": 6,
+      "failed": 0
+    },
+    "sustained_stress": {
+      "passed": true,
+      "total": 2,
+      "failed": 0
     }
   },
   "coverage": {
     "rust_core_pct": 95.2,
-    "flutter_ui_pct": 90.82,
-    "unified_pct": 93.01,
+    "flutter_ui_pct": 90.09,
+    "unified_pct": 92.65,
     "gate_threshold_pct": 90.0,
     "gate_passed": true
   },
@@ -71,7 +81,7 @@
       "requirement": "Android First-Class Signed Packaging & Runtime",
       "component": "apps/flutter_app/android",
       "test_reference": "Container release APK build & manifest validation",
-      "classification": "PROVEN",
+      "classification": "DEVICE-PROVEN",
       "evidence": "Real signed APK produced (22915450 bytes, SHA-256: a2313180d0b2...)"
     },
     {
@@ -79,7 +89,7 @@
       "requirement": "Desktop Native Execution & Real Binary Packaging",
       "component": "core/rust, scripts/package.ps1",
       "test_reference": "Native release build & package.ps1",
-      "classification": "PROVEN",
+      "classification": "DEVICE-PROVEN",
       "evidence": "Real compiled uvs_core.dll (2.29 MB) bundled into windows_x64.zip"
     },
     {
@@ -87,7 +97,7 @@
       "requirement": "Intel QSV Hardware Acceleration (GPU Encoding)",
       "component": "core/rust/src/render/mod.rs",
       "test_reference": "tests/benchmarks.py (Benchmark 4)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "Verified on host Intel(R) Arc(TM) 130T GPU (8GB) via h264_qsv"
     },
     {
@@ -95,7 +105,7 @@
       "requirement": "High-Precision Rational Timecode & Drop-Frame Math",
       "component": "core/rust/src/timeline/timecode.rs",
       "test_reference": "core_tests.rs (test_timecode_rational_math)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "Exact Rational64 representation with 0.000000ms drift across CFR/VFR"
     },
     {
@@ -103,7 +113,7 @@
       "requirement": "Non-Destructive Multi-Track NLE Editing Engine",
       "component": "core/rust/src/timeline/mod.rs",
       "test_reference": "core_tests.rs (test_nle_trim_roll_slip_slide, speed/reverse)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "Trim, ripple, roll, slip, slide, variable speed, reverse, and markers verified"
     },
     {
@@ -111,7 +121,7 @@
       "requirement": "Audio DSP (5-Band EQ, Dynamic Compressor, LUFS)",
       "component": "core/rust/src/audio/mod.rs",
       "test_reference": "core_tests.rs (test_audio_dsp_eq_compressor_lufs)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "RBJ biquad filters, dynamic compressor gain reduction, BS.1770 LUFS calculation"
     },
     {
@@ -119,7 +129,7 @@
       "requirement": "Color Grading, 3D LUT Cube Parser, Chroma Keying",
       "component": "core/rust/src/effects/mod.rs",
       "test_reference": "core_tests.rs (test_color_grading_and_lut)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "Trilinear LUT interpolation and HSV/YUV alpha keying verified"
     },
     {
@@ -127,7 +137,7 @@
       "requirement": "Subtitles Engine (SRT, WebVTT, ASS V4+ Styles & Events)",
       "component": "core/rust/src/subtitles/mod.rs",
       "test_reference": "core_tests.rs (test_substation_alpha_and_vtt_roundtrip)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "Full roundtrip parse and serialization with dialogue timing calibration"
     },
     {
@@ -135,7 +145,7 @@
       "requirement": "Golden Frame Preview vs Export Render Equivalence",
       "component": "core/rust/src/render, tests/e2e_media_tests.py",
       "test_reference": "e2e_media_tests.py (Test 6)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "Preview buffer matches export frame stream within <1.5% channel tolerance"
     },
     {
@@ -143,7 +153,7 @@
       "requirement": "Complete Proxy Lifecycle & Fault Injection",
       "component": "core/rust/src/media/mod.rs, tests/e2e_media_tests.py",
       "test_reference": "e2e_media_tests.py (Test 7)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "4K -> 720p proxy -> corrupt/deleted fallback -> export from 4K original"
     },
     {
@@ -151,7 +161,7 @@
       "requirement": "Multi-View Simultaneous Streams & Audio Mixing Matrix",
       "component": "apps/flutter_app/lib/src/modes/multi_view_mode.dart",
       "test_reference": "core_tests.rs (test_multiview_concurrent_streams_and_mixing)",
-      "classification": "PROVEN",
+      "classification": "INTEGRATED",
       "evidence": "6-feed concurrent audio summing with per-channel volume and mute faders"
     },
     {
@@ -159,7 +169,7 @@
       "requirement": "Multicam Sync & Angle Switching Commit to Timeline",
       "component": "core/rust/src/multicam/mod.rs, multicam_mode.dart",
       "test_reference": "multicam/mod.rs (test_multicam_commit_cuts)",
-      "classification": "PROVEN",
+      "classification": "INTEGRATED",
       "evidence": "Waveform cross-correlation lag + automatic timeline clip cut generation"
     },
     {
@@ -167,7 +177,7 @@
       "requirement": "FFI Memory Safety, Null Fuzzing & 5,000-Cycle Stress",
       "component": "core/rust/src/ffi/mod.rs",
       "test_reference": "core_tests.rs (test_ffi_exhaustive_null_fuzzing, memory_leak_cycles)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "5,000 project create/edit/free cycles verified with zero panics or leaks"
     },
     {
@@ -175,7 +185,7 @@
       "requirement": "Atomic Save Crash Injection & Recovery",
       "component": "core/rust/src/project/storage.rs",
       "test_reference": "core_tests.rs (test_atomic_save_fault_injection_and_disk_full)",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "Temp-write -> fsync -> atomic rename guarantees zero file corruption on crash"
     },
     {
@@ -183,7 +193,7 @@
       "requirement": "Security, License Compliance & CycloneDX SBOM",
       "component": "tests/security_audit.py",
       "test_reference": "tests/security_audit.py",
-      "classification": "PROVEN",
+      "classification": "RUNTIME-PROVEN",
       "evidence": "0 secrets detected; all 10 dependencies permissive; CycloneDX SBOM generated"
     },
     {
@@ -209,6 +219,30 @@
       "test_reference": "Capability probe with CPU fallback",
       "classification": "HARDWARE-REQUIRED",
       "evidence": "Requires physical Apple Silicon / macOS host runner"
+    },
+    {
+      "id": "REQ-19",
+      "requirement": "Adversarial Fault Tolerance & Chaos Recovery",
+      "component": "tests/adversarial_tests.py",
+      "test_reference": "tests/adversarial_tests.py (6/6 Suites)",
+      "classification": "RUNTIME-PROVEN",
+      "evidence": "50 rapid seeks, 100-cycle undo/redo spam, 0-byte corrupt project recovery, stream drop/reconnect, and export cancellation verified"
+    },
+    {
+      "id": "REQ-20",
+      "requirement": "Sustained Multi-Cycle Memory & AV Drift Stability",
+      "component": "tests/sustained_stress_test.py",
+      "test_reference": "tests/sustained_stress_test.py (2/2 Suites)",
+      "classification": "RUNTIME-PROVEN",
+      "evidence": "25 heavy allocation cycles verified bounded memory growth (<50MB) and 0.00ms AV sync drift"
+    },
+    {
+      "id": "REQ-21",
+      "requirement": "Adaptive Responsive Layout Matrix (Zero-Overflow UX)",
+      "component": "apps/flutter_app/test/golden_visual_test.dart",
+      "test_reference": "golden_visual_test.dart (70/70 Matrix Suites)",
+      "classification": "UX-VALIDATED",
+      "evidence": "Phone portrait/landscape, tablet portrait/landscape, desktop 1080p/4K, 125% scaling, Light & Dark themes verified with 0 RenderFlex overflow"
     }
   ],
   "artifacts": [

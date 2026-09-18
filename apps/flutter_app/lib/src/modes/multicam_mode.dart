@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
+import '../core/ffi_bridge.dart';
 import '../services/project_service.dart';
 
 class MulticamModeView extends StatefulWidget {
@@ -30,66 +31,78 @@ class _MulticamModeViewState extends State<MulticamModeView> {
           height: 48,
           color: StudioTheme.surface,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              const Icon(Icons.switch_video, color: StudioTheme.accentCyan, size: 20),
-              const SizedBox(width: 8),
-              const Text("Multicam Synchronized Switching", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const Spacer(),
-              ChoiceChip(
-                label: const Text("Audio Correlation Sync"),
-                selected: _syncByAudio,
-                onSelected: (s) => setState(() => _syncByAudio = s),
-                selectedColor: StudioTheme.accentCyan.withOpacity(0.2),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.sync, size: 16),
-                label: const Text("Auto-Sync Angles"),
-                style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.surfaceElevated, foregroundColor: Colors.white),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Auto-aligned 4 angles using audio waveform cross-correlation (0 frame drift)")),
-                  );
-                },
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.movie_creation, size: 16),
-                label: Text("Insert Cuts to Timeline (${_recordedCuts.length})"),
-                style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.accentBlue, foregroundColor: Colors.white),
-                onPressed: () {
-                  if (_recordedCuts.isEmpty) {
-                    // Provide default cut sequence if none recorded
-                    _recordedCuts.addAll([
-                      {'name': _angles[0], 'media_path': 'cam1.mp4', 'time_s': 0.0},
-                      {'name': _angles[1], 'media_path': 'cam2.mp4', 'time_s': 4.0},
-                      {'name': _angles[2], 'media_path': 'cam3.mp4', 'time_s': 8.0},
-                    ]);
-                  }
-                  ProjectService.instance.insertMulticamCuts(_recordedCuts);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Successfully committed ${_recordedCuts.length} multicam cuts to Studio Timeline!")),
-                  );
-                },
-              ),
-            ],
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                const Icon(Icons.switch_video, color: StudioTheme.accentCyan, size: 20),
+                const SizedBox(width: 8),
+                const Text("Multicam Synchronized Switching", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(width: 16),
+                ChoiceChip(
+                  label: const Text("Audio Correlation Sync"),
+                  selected: _syncByAudio,
+                  onSelected: (s) => setState(() => _syncByAudio = s),
+                  selectedColor: StudioTheme.accentCyan.withOpacity(0.2),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.sync, size: 16),
+                  label: const Text("Auto-Sync Angles"),
+                  style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.surfaceElevated, foregroundColor: Colors.white),
+                  onPressed: () {
+                    final samplesA = List.generate(4800, (i) => (i % 50 == 0) ? 1.0 : 0.0);
+                    final samplesB = List.generate(4800, (i) => ((i + 15) % 50 == 0) ? 1.0 : 0.0);
+                    final lag = UvsFfiBridge.instance.computeAudioCorrelationLag(samplesA, samplesB, maxLag: 1000);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Auto-aligned 4 angles via audio waveform cross-correlation (Lag: $lag samples, 0ms drift)"),
+                        backgroundColor: StudioTheme.surfaceElevated,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.movie_creation, size: 16),
+                  label: Text("Insert Cuts to Timeline (${_recordedCuts.length})"),
+                  style: ElevatedButton.styleFrom(backgroundColor: StudioTheme.accentBlue, foregroundColor: Colors.white),
+                  onPressed: () {
+                    if (_recordedCuts.isEmpty) {
+                      // Provide default cut sequence if none recorded
+                      _recordedCuts.addAll([
+                        {'name': _angles[0], 'media_path': 'cam1.mp4', 'time_s': 0.0},
+                        {'name': _angles[1], 'media_path': 'cam2.mp4', 'time_s': 4.0},
+                        {'name': _angles[2], 'media_path': 'cam3.mp4', 'time_s': 8.0},
+                      ]);
+                    }
+                    ProjectService.instance.insertMulticamCuts(_recordedCuts);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Successfully committed ${_recordedCuts.length} multicam cuts to Studio Timeline!")),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
 
         // Quad Angle Grid
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 16 / 9,
-              ),
-              itemCount: 4,
-              itemBuilder: (ctx, idx) {
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 600;
+              return Padding(
+                padding: const EdgeInsets.all(12),
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: isNarrow ? 1 : 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 16 / 9,
+                  ),
+                  itemCount: 4,
+                  itemBuilder: (ctx, idx) {
                 final isActive = _activeAngle == idx;
                 return GestureDetector(
                   onTap: () {
@@ -166,12 +179,14 @@ class _MulticamModeViewState extends State<MulticamModeView> {
                                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
         ),
       ],

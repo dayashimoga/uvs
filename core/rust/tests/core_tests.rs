@@ -912,3 +912,146 @@ fn test_atomic_save_fault_injection_and_disk_full() {
     let _ = std::fs::remove_file(&valid_path);
     let _ = std::fs::remove_dir_all(&read_only_dir);
 }
+
+#[test]
+fn test_ffi_undo_redo_keyframes_transitions_subtitles() {
+    use std::ffi::{CStr, CString};
+    use std::ptr;
+    use uvs_core::ffi::*;
+
+    // 1. UndoStack C-ABI
+    let stack = uvs_undo_stack_new(20);
+    assert!(!stack.is_null());
+    assert_eq!(uvs_undo_stack_can_undo(stack), 0);
+    assert_eq!(uvs_undo_stack_can_redo(stack), 0);
+
+    let mut proj = Project::new("UndoTest", 1920, 1080, TimecodeConfig::default());
+    let mut track = Track::new("V1", TrackType::Video, 0);
+    let clip = Clip::new(
+        "TestClip",
+        "test.mp4",
+        RationalTime::zero(),
+        RationalTime::from_seconds(4, 1),
+    );
+    let track_id = track.id.clone();
+    let clip_id = clip.id.clone();
+    track.add_clip(clip.clone()).unwrap();
+    proj.timeline.add_track(track);
+
+    let proj_json = proj.to_json().unwrap();
+    let c_proj_json = CString::new(proj_json).unwrap();
+
+    // Push an AddClip action
+    let action_json = format!(
+        r#"{{"AddClip":{{"track_id":"{}","clip":{}}}}}"#,
+        track_id,
+        serde_json::to_string(&clip).unwrap()
+    );
+    let c_action = CString::new(action_json).unwrap();
+    assert_eq!(uvs_undo_stack_push(stack, c_action.as_ptr()), 0);
+    assert_eq!(uvs_undo_stack_can_undo(stack), 1);
+
+    // Undo action
+    let undone_ptr = uvs_undo_stack_undo(stack, c_proj_json.as_ptr());
+    assert!(!undone_ptr.is_null());
+    let undone_str = unsafe { CStr::from_ptr(undone_ptr).to_str().unwrap() };
+    assert!(
+        !undone_str.contains("error"),
+        "Undone failed: {}",
+        undone_str
+    );
+    assert_eq!(uvs_undo_stack_can_undo(stack), 0);
+    assert_eq!(uvs_undo_stack_can_redo(stack), 1);
+
+    // Redo action on undone project
+    let redone_ptr = uvs_undo_stack_redo(stack, undone_ptr);
+    assert!(!redone_ptr.is_null());
+    let redone_str = unsafe { CStr::from_ptr(redone_ptr).to_str().unwrap() };
+    assert!(
+        !redone_str.contains("error"),
+        "Redone failed: {}",
+        redone_str
+    );
+    assert_eq!(uvs_undo_stack_can_undo(stack), 1);
+    assert_eq!(uvs_undo_stack_can_redo(stack), 0);
+    uvs_free_string(redone_ptr);
+    uvs_free_string(undone_ptr);
+
+    uvs_undo_stack_free(stack);
+
+    // 2. Keyframes C-ABI
+    let c_t_id = CString::new(track_id.clone()).unwrap();
+    let c_c_id = CString::new(clip_id.clone()).unwrap();
+    let c_prop = CString::new("opacity").unwrap();
+    let kf_ptr = uvs_clip_add_keyframe(
+        c_proj_json.as_ptr(),
+        c_t_id.as_ptr(),
+        c_c_id.as_ptr(),
+        c_prop.as_ptr(),
+        1.5,
+        0.8,
+        1, // EaseIn
+    );
+    assert!(!kf_ptr.is_null());
+    let kf_str = unsafe { CStr::from_ptr(kf_ptr).to_str().unwrap() };
+    assert!(kf_str.contains("opacity"));
+    assert!(kf_str.contains("EaseIn"));
+    uvs_free_string(kf_ptr);
+
+    // 3. Transitions C-ABI
+    let tr_ptr = uvs_clip_set_transition(
+        c_proj_json.as_ptr(),
+        c_t_id.as_ptr(),
+        c_c_id.as_ptr(),
+        1, // is_in
+        0, // CrossDissolve
+        1.0,
+    );
+    assert!(!tr_ptr.is_null());
+    let tr_str = unsafe { CStr::from_ptr(tr_ptr).to_str().unwrap() };
+    assert!(tr_str.contains("CrossDissolve"));
+    uvs_free_string(tr_ptr);
+
+    // 4. Subtitles C-ABI
+    let c_sub_text = CString::new("Opening Scene Dialogue").unwrap();
+    let sub_ptr = uvs_subtitle_add_cue(c_proj_json.as_ptr(), 0.5, 3.5, c_sub_text.as_ptr());
+    assert!(!sub_ptr.is_null());
+    let sub_str = unsafe { CStr::from_ptr(sub_ptr).to_str().unwrap() };
+    assert!(sub_str.contains("Opening Scene Dialogue"));
+    assert!(sub_str.contains("Subtitle"));
+    uvs_free_string(sub_ptr);
+
+    // 5. Null-pointer fuzzing for all new endpoints
+    assert_eq!(uvs_undo_stack_can_undo(ptr::null()), 0);
+    assert_eq!(uvs_undo_stack_can_redo(ptr::null()), 0);
+    assert_eq!(uvs_undo_stack_push(ptr::null_mut(), ptr::null()), -1);
+    uvs_undo_stack_free(ptr::null_mut());
+
+    let u_null = uvs_undo_stack_undo(ptr::null_mut(), ptr::null());
+    assert!(!u_null.is_null());
+    uvs_free_string(u_null);
+
+    let r_null = uvs_undo_stack_redo(ptr::null_mut(), ptr::null());
+    assert!(!r_null.is_null());
+    uvs_free_string(r_null);
+
+    let kf_null = uvs_clip_add_keyframe(
+        ptr::null(),
+        ptr::null(),
+        ptr::null(),
+        ptr::null(),
+        0.0,
+        0.0,
+        0,
+    );
+    assert!(!kf_null.is_null());
+    uvs_free_string(kf_null);
+
+    let tr_null = uvs_clip_set_transition(ptr::null(), ptr::null(), ptr::null(), 0, 0, 0.0);
+    assert!(!tr_null.is_null());
+    uvs_free_string(tr_null);
+
+    let sub_null = uvs_subtitle_add_cue(ptr::null(), 0.0, 0.0, ptr::null());
+    assert!(!sub_null.is_null());
+    uvs_free_string(sub_null);
+}

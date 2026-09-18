@@ -88,6 +88,21 @@ jobs:
       - name: Run Performance Benchmarks
         run: python3 tests/benchmarks.py
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Compile Rust Core Engine
+        run: cd core/rust && cargo build --release
+
+      - name: Install Python Dependencies
+        run: pip install psutil
+
+      - name: Run Adversarial Tests
+        run: python3 tests/adversarial_tests.py
+
+      - name: Run Sustained Stress Tests
+        run: python3 tests/sustained_stress_test.py
+
   security-and-sbom:
     name: Security, License & SBOM Audit
     runs-on: ubuntu-latest
