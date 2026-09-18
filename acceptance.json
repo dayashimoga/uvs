@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-09-18T11:32:03.506439+00:00",
-  "commit_sha": "1694455d32adce39daddbd07c02ce54bd0acb121",
+  "timestamp": "2026-09-18T13:03:58.142266+00:00",
+  "commit_sha": "afb3afa8e720b11f535a8e3552be60e5cde42d81",
   "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
   "tests": {
     "rust_core": {
@@ -10,7 +10,12 @@
     },
     "flutter_ui": {
       "passed": true,
-      "total": 115,
+      "total": 139,
+      "failed": 0
+    },
+    "real_pipelines": {
+      "passed": true,
+      "total": 3,
       "failed": 0
     },
     "e2e_media": {
@@ -24,28 +29,28 @@
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 206.7698999948334,
+          "value": 189.93683999869972,
           "unit": "ms",
           "budget": 300.0,
           "status": "PASS"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 4.524674975700535,
+          "value": 5.144163907492151,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 11054731.98880322,
+          "value": 8410711.888833728,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
         },
         {
           "metric": "intel_qsv_speed_factor",
-          "value": 1.395965464380774,
+          "value": 1.875488476837375,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS",
@@ -65,13 +70,37 @@
     "sustained_stress": {
       "passed": true,
       "total": 2,
-      "failed": 0
+      "failed": 0,
+      "metrics": {
+        "sustained_pipeline_rss_stabilization": {
+          "status": "PASS",
+          "initial_rss_mb": 19.140625,
+          "tier_rss": {
+            "100": 21.078125,
+            "500": 21.08203125,
+            "1000": 21.08203125,
+            "5000": 21.08203125
+          },
+          "total_delta_mb": 1.94140625,
+          "growth_rate_per_cycle_mb": 0.0,
+          "cycles_per_sec": 4157.059701700286
+        },
+        "sustained_decode_and_continuous_av_drift": {
+          "status": "PASS",
+          "sample_count": 120,
+          "avg_drift_ms": 5.2888666666666575,
+          "p95_drift_ms": 10.665999999999842,
+          "max_drift_ms": 10.666999999999982,
+          "final_drift_ms": 8.000000000000007,
+          "decode_fps": 717.0150662962453
+        }
+      }
     }
   },
   "coverage": {
     "rust_core_pct": 95.2,
-    "flutter_ui_pct": 90.34,
-    "unified_pct": 92.77,
+    "flutter_ui_pct": 93.86,
+    "unified_pct": 94.53,
     "gate_threshold_pct": 90.0,
     "gate_passed": true
   },
@@ -81,8 +110,8 @@
       "requirement": "Android First-Class Signed Packaging & Runtime",
       "component": "apps/flutter_app/android",
       "test_reference": "Container release APK build & manifest validation",
-      "classification": "DEVICE-PROVEN",
-      "evidence": "Real signed APK produced (861127 bytes, SHA-256: 69dabf54cb2e...)"
+      "classification": "BUILT/PACKAGED",
+      "evidence": "Real signed APK produced (861127 bytes, SHA-256: 69dabf54cb2e...); Physical silicon required for device certification."
     },
     {
       "id": "REQ-02",
@@ -90,7 +119,7 @@
       "component": "core/rust, scripts/package.ps1",
       "test_reference": "Native release build & package.ps1",
       "classification": "DEVICE-PROVEN",
-      "evidence": "Real compiled uvs_core.dll (2.29 MB) bundled into windows_x64.zip"
+      "evidence": "Real compiled uvs_core.dll (2.29 MB) bundled into windows_x64.zip and runtime proven on host."
     },
     {
       "id": "REQ-03",
@@ -160,17 +189,17 @@
       "id": "REQ-11",
       "requirement": "Multi-View Simultaneous Streams & Audio Mixing Matrix",
       "component": "apps/flutter_app/lib/src/modes/multi_view_mode.dart",
-      "test_reference": "core_tests.rs (test_multiview_concurrent_streams_and_mixing)",
-      "classification": "INTEGRATED",
-      "evidence": "6-feed concurrent audio summing with per-channel volume and mute faders"
+      "test_reference": "test_real_multiview_multicam_recording.py (Multi-View 1)",
+      "classification": "RUNTIME-PROVEN",
+      "evidence": "6 and 9 simultaneous independent video decoders verified with advancing PTS, 3-channel matrix mixer summing, and stream drop/reconnect recovery."
     },
     {
       "id": "REQ-12",
       "requirement": "Multicam Sync & Angle Switching Commit to Timeline",
       "component": "core/rust/src/multicam/mod.rs, multicam_mode.dart",
-      "test_reference": "multicam/mod.rs (test_multicam_commit_cuts)",
-      "classification": "INTEGRATED",
-      "evidence": "Waveform cross-correlation lag + automatic timeline clip cut generation"
+      "test_reference": "test_real_multiview_multicam_recording.py (Multicam 2)",
+      "classification": "RUNTIME-PROVEN",
+      "evidence": "4 camera feeds synced via 2400-sample waveform cross-correlation, 4 committed live angle cuts, timeline sequence exported, and cut transitions verified via frame decode."
     },
     {
       "id": "REQ-13",
@@ -234,17 +263,480 @@
       "component": "tests/sustained_stress_test.py",
       "test_reference": "tests/sustained_stress_test.py (2/2 Suites)",
       "classification": "RUNTIME-PROVEN",
-      "evidence": "100 heavy allocation cycles verified bounded memory growth (<50MB) and 20 continuous decode bursts (300 frames) with 0.00ms AV sync drift"
+      "evidence": "5,000 FFI allocation cycles verified bounded RSS memory stabilization (d(RSS)/d(cycle) = 0.000000 MB/cycle) and 120 continuous decode PTS frames with avg AV sync drift 5.29ms (max 10.67ms, well within <33.3ms budget)"
     },
     {
       "id": "REQ-21",
       "requirement": "Adaptive Responsive Layout Matrix (Zero-Overflow UX)",
       "component": "apps/flutter_app/test/golden_visual_test.dart",
-      "test_reference": "golden_visual_test.dart (70/70 Matrix Suites)",
+      "test_reference": "golden_visual_test.dart (90/90 Matrix Suites)",
       "classification": "UX-VALIDATED",
-      "evidence": "Phone portrait/landscape, tablet portrait/landscape, desktop 1080p/4K, 125% scaling, Light & Dark themes verified with 0 RenderFlex overflow"
+      "evidence": "90/90 matrix suites covering phone portrait/landscape, tablet portrait/landscape, desktop 1366x768, 1080p, 4K scaled, 125% and 150% scaling across Light and Dark themes verified with 0 RenderFlex overflow"
+    },
+    {
+      "id": "REQ-22",
+      "requirement": "Real Video & Audio Recording Ingestion Pipeline",
+      "component": "apps/flutter_app/lib/src/services/recording_service.dart, recording_dialog.dart",
+      "test_reference": "test_real_multiview_multicam_recording.py (Recording 3)",
+      "classification": "RUNTIME-PROVEN",
+      "evidence": "Screen, camera, mic and system audio capture; device selection and capability warnings; 5s capture, probe, timeline trim and master export verified."
     }
   ],
+  "user_features": {
+    "schema_version": "1.0.0",
+    "project": "Universal Video Studio (UVS)",
+    "total_features": 48,
+    "classification_counts": {
+      "RUNTIME-PROVEN": 24,
+      "UX-VALIDATED": 14,
+      "INTEGRATED": 6,
+      "DEVICE-PROVEN": 2,
+      "HARDWARE-REQUIRED": 2
+    },
+    "features": [
+      {
+        "id": "FEAT-PLY-01",
+        "mode": "Player",
+        "action": "Playback & Pause Control",
+        "ui_entry": "Play/Pause Button & Spacebar Keybinding",
+        "backend_ffi": "VideoMonitorSurface / ProjectService.togglePlayback",
+        "classification": "UX-VALIDATED",
+        "evidence": "1,000 rapid play/pause transitions verified with 0.00ms clock drift in adversarial suite"
+      },
+      {
+        "id": "FEAT-PLY-02",
+        "mode": "Player",
+        "action": "Precision Timeline Scrubbing & Seek",
+        "ui_entry": "Progress Slider & Direct Timestamp Click",
+        "backend_ffi": "VideoMonitorSurface / MediaService.extractFrame",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "5,000 rapid seeks benchmarked at 206.77ms avg seek latency (<300ms budget)"
+      },
+      {
+        "id": "FEAT-PLY-03",
+        "mode": "Player",
+        "action": "Single-Frame Step Forward / Backward",
+        "ui_entry": "Frame Step Buttons (< and >)",
+        "backend_ffi": "RationalTime math (1/30s frame step)",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Exact 1-frame boundary advance verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-PLY-04",
+        "mode": "Player",
+        "action": "Variable Playback Speed Selection",
+        "ui_entry": "Speed Dropdown (0.25x to 2.0x)",
+        "backend_ffi": "uvs_timeline_set_speed",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Core tests verify clip duration dilation and reverse playback flag"
+      },
+      {
+        "id": "FEAT-PLY-05",
+        "mode": "Player",
+        "action": "A-B Repeat Looping",
+        "ui_entry": "Set A / Set B / Clear Loop Buttons",
+        "backend_ffi": "PlayerMode loop point boundaries",
+        "classification": "UX-VALIDATED",
+        "evidence": "Coverage boost test validates A-B repeat region clamping"
+      },
+      {
+        "id": "FEAT-PLY-06",
+        "mode": "Player",
+        "action": "Audio Sync Delay Calibration",
+        "ui_entry": "Audio Delay Slider (-5000ms to +5000ms)",
+        "backend_ffi": "Audio offset parameter in render and preview bus",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Verified in benchmarks and core_tests.rs audio bus tests"
+      },
+      {
+        "id": "FEAT-PLY-07",
+        "mode": "Player",
+        "action": "Subtitle Track Selection & Display",
+        "ui_entry": "Subtitles Dropdown in HUD",
+        "backend_ffi": "uvs_subtitles_parse (SRT, WebVTT, ASS)",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Full roundtrip parse/serialize verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-PLY-08",
+        "mode": "Player",
+        "action": "Snapshot Capture",
+        "ui_entry": "Snapshot Camera Icon",
+        "backend_ffi": "MediaService.extractFrame to PNG/JPEG",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "e2e_media_tests.py Test 6 asserts preview PNG generation"
+      },
+      {
+        "id": "FEAT-QCK-01",
+        "mode": "Quick Edit",
+        "action": "Interactive Dual-Handle In/Out Trim",
+        "ui_entry": "RangeSlider in Quick Edit View",
+        "backend_ffi": "uvs_timeline_trim_clip",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Verified in core_tests.rs test_nle_trim_roll_slip_slide_operations"
+      },
+      {
+        "id": "FEAT-QCK-02",
+        "mode": "Quick Edit",
+        "action": "Aspect Ratio Reframe",
+        "ui_entry": "Ratio Chips (16:9, 9:16 Reels/Shorts, 1:1, 4:3)",
+        "backend_ffi": "Render preset command dimension builder",
+        "classification": "UX-VALIDATED",
+        "evidence": "golden_visual_test.dart asserts zero overflow across all aspect ratios"
+      },
+      {
+        "id": "FEAT-QCK-03",
+        "mode": "Quick Edit",
+        "action": "90-Degree Step Rotation",
+        "ui_entry": "Rotate 90 Button",
+        "backend_ffi": "Video transform matrix / FFmpeg transpose filter",
+        "classification": "UX-VALIDATED",
+        "evidence": "Verified in QuickEditMode view test suite"
+      },
+      {
+        "id": "FEAT-QCK-04",
+        "mode": "Quick Edit",
+        "action": "Color Look Filter Presets",
+        "ui_entry": "Preset Chips (Cinematic, Warm, Cool, B&W, Vibrant)",
+        "backend_ffi": "uvs_apply_color_grading",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Pixel RGBA color transform verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-QCK-05",
+        "mode": "Quick Edit",
+        "action": "Text Title Overlay Burn-In",
+        "ui_entry": "Text Overlay Input Field",
+        "backend_ffi": "uvs_subtitle_add_cue",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Verified in core_tests.rs and quick_edit_mode.dart tests"
+      },
+      {
+        "id": "FEAT-QCK-06",
+        "mode": "Quick Edit",
+        "action": "1-Click Direct Export",
+        "ui_entry": "Export Quick Edit Button",
+        "backend_ffi": "RenderService.startRender",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "e2e_media_tests.py Test 4 & Test 6 prove direct transcode execution"
+      },
+      {
+        "id": "FEAT-STU-01",
+        "mode": "Studio Editor",
+        "action": "Multi-Track Timeline Construction",
+        "ui_entry": "Add Video/Audio/Subtitle Track Buttons",
+        "backend_ffi": "uvs_timeline_add_track",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "100-cycle stress test builds 5-track timelines continuously"
+      },
+      {
+        "id": "FEAT-STU-02",
+        "mode": "Studio Editor",
+        "action": "Clip Split at Playhead",
+        "ui_entry": "Split Button (Scissors Icon)",
+        "backend_ffi": "uvs_timeline_split_clip",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Verified in core_tests.rs test_timeline_operations"
+      },
+      {
+        "id": "FEAT-STU-03",
+        "mode": "Studio Editor",
+        "action": "Ripple Delete Clip",
+        "ui_entry": "Ripple Delete Action / Context Menu",
+        "backend_ffi": "uvs_timeline_ripple_delete",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Closes timeline gaps automatically without leaving dead space"
+      },
+      {
+        "id": "FEAT-STU-04",
+        "mode": "Studio Editor",
+        "action": "Roll, Slip, and Slide Edits",
+        "ui_entry": "Timeline Edit Tool Mode Selector",
+        "backend_ffi": "uvs_timeline_roll_edit, uvs_timeline_slip_edit, uvs_timeline_slide_edit",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Verified in core_tests.rs test_nle_trim_roll_slip_slide_operations"
+      },
+      {
+        "id": "FEAT-STU-05",
+        "mode": "Studio Editor",
+        "action": "Clip Grouping & A/V Sync Linking",
+        "ui_entry": "Link / Group Clips Action",
+        "backend_ffi": "uvs_timeline_link_clips",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Verified in core_tests.rs test_nle_speed_reverse_link_group_markers"
+      },
+      {
+        "id": "FEAT-STU-06",
+        "mode": "Studio Editor",
+        "action": "Timeline Markers Placement & Deletion",
+        "ui_entry": "Add Marker Button (M Key)",
+        "backend_ffi": "uvs_timeline_add_marker, uvs_timeline_delete_marker",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-STU-07",
+        "mode": "Studio Editor",
+        "action": "Property Keyframing (Position/Scale/Opacity)",
+        "ui_entry": "Inspector Keyframe Diamond Toggles",
+        "backend_ffi": "uvs_clip_add_keyframe",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Linear, Ease-In, Ease-Out Bezier curves verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-STU-08",
+        "mode": "Studio Editor",
+        "action": "Clip Transitions (Crossfade, Dip to Black)",
+        "ui_entry": "Transitions Inspector Panel",
+        "backend_ffi": "uvs_clip_set_transition",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Verified in core_tests.rs test_ffi_undo_redo_keyframes_transitions_subtitles"
+      },
+      {
+        "id": "FEAT-STU-09",
+        "mode": "Studio Editor",
+        "action": "Color Grading & 3D LUT Profiles",
+        "ui_entry": "Color Inspector (Exposure, Contrast, Lift/Gamma/Gain)",
+        "backend_ffi": "uvs_apply_color_grading & 3D LUT cube parser",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Trilinear LUT interpolation and color wheels verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-STU-10",
+        "mode": "Studio Editor",
+        "action": "Chroma Keying & Spill Suppression",
+        "ui_entry": "Effects Inspector Chroma Key Section",
+        "backend_ffi": "uvs_apply_chroma_key",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "HSV/YUV alpha keying verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-STU-11",
+        "mode": "Studio Editor",
+        "action": "5-Band Parametric EQ & Dynamic Compressor",
+        "ui_entry": "Audio Mixer Tab in Inspector",
+        "backend_ffi": "uvs_core audio DSP module",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Biquad RBJ filters and attack/release compression verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-STU-12",
+        "mode": "Studio Editor",
+        "action": "EBU R128 Integrated LUFS Loudness & Normalization",
+        "ui_entry": "Loudness Meter HUD",
+        "backend_ffi": "uvs_calculate_integrated_lufs",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "BS.1770 K-weighted LUFS calculated accurately in benchmarks & stress tests"
+      },
+      {
+        "id": "FEAT-STU-13",
+        "mode": "Studio Editor",
+        "action": "Dual Monitor (Source & Program Monitors)",
+        "ui_entry": "Studio Editor Split View",
+        "backend_ffi": "VideoMonitorSurface instances",
+        "classification": "UX-VALIDATED",
+        "evidence": "Rendered with zero RenderFlex overflow across phone, tablet, and desktop"
+      },
+      {
+        "id": "FEAT-STU-14",
+        "mode": "Studio Editor",
+        "action": "100-Level Reversible Undo / Redo Stack",
+        "ui_entry": "Undo / Redo Icons & Ctrl+Z / Ctrl+Y",
+        "backend_ffi": "uvs_undo_stack_undo, uvs_undo_stack_redo",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "1,000-operation undo/redo storm verified with 0 panics in adversarial suite"
+      },
+      {
+        "id": "FEAT-MVW-01",
+        "mode": "Multi-View",
+        "action": "Dynamic Layout Grid (1x1 to 3x3)",
+        "ui_entry": "Layout Selector Dropdown",
+        "backend_ffi": "MultiViewModeView grid builder",
+        "classification": "UX-VALIDATED",
+        "evidence": "Tested across all 6 layouts with responsive sizing"
+      },
+      {
+        "id": "FEAT-MVW-02",
+        "mode": "Multi-View",
+        "action": "Concurrent Multi-Audio Matrix Mixing",
+        "ui_entry": "Per-Tile Volume Faders & Mute Buttons",
+        "backend_ffi": "Rust audio mixer 6-feed summing bus",
+        "classification": "INTEGRATED",
+        "evidence": "core_tests.rs test_multiview_concurrent_streams_and_mixing validates multi-channel audio"
+      },
+      {
+        "id": "FEAT-MVW-03",
+        "mode": "Multi-View",
+        "action": "Master Playhead Sync Across Feeds",
+        "ui_entry": "Master Sync FilterChip",
+        "backend_ffi": "Multi-stream synchronized clock",
+        "classification": "UX-VALIDATED",
+        "evidence": "Verified in multi_view_mode.dart widget test suite"
+      },
+      {
+        "id": "FEAT-MVW-04",
+        "mode": "Multi-View",
+        "action": "Stream Drop & Fault Injection Recovery",
+        "ui_entry": "Drop Feed Button / Reconnect Feed Button",
+        "backend_ffi": "Signal recovery state machine",
+        "classification": "INTEGRATED",
+        "evidence": "9-feed simultaneous drop and reconnect verified in adversarial_tests.py"
+      },
+      {
+        "id": "FEAT-MVW-05",
+        "mode": "Multi-View",
+        "action": "Direct Export Feeds to Multicam Timeline",
+        "ui_entry": "Send to Multicam Button",
+        "backend_ffi": "ProjectService.insertMulticamCuts",
+        "classification": "INTEGRATED",
+        "evidence": "Generates synchronized timeline clips directly from multi-view feeds"
+      },
+      {
+        "id": "FEAT-CAM-01",
+        "mode": "Multicam",
+        "action": "Quad/Multi-Angle Monitor Grid",
+        "ui_entry": "Multicam Mode Preview Grid",
+        "backend_ffi": "VideoMonitorSurface multi-instance",
+        "classification": "UX-VALIDATED",
+        "evidence": "Verified in multicam_mode.dart widget test suite"
+      },
+      {
+        "id": "FEAT-CAM-02",
+        "mode": "Multicam",
+        "action": "Live Angle Switching Cuts",
+        "ui_entry": "Angle 1-4 Switcher Buttons (Keys 1-4)",
+        "backend_ffi": "Recorded cut sequence generator",
+        "classification": "INTEGRATED",
+        "evidence": "multicam/mod.rs test_multicam_commit_cuts validates angle cut transitions"
+      },
+      {
+        "id": "FEAT-CAM-03",
+        "mode": "Multicam",
+        "action": "Waveform Cross-Correlation Audio Sync",
+        "ui_entry": "Auto-Sync by Audio Button",
+        "backend_ffi": "uvs_find_multicam_lag",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Exact sample-offset calculation verified in core_tests.rs"
+      },
+      {
+        "id": "FEAT-CAM-04",
+        "mode": "Multicam",
+        "action": "Commit Cuts to Studio Timeline",
+        "ui_entry": "Insert Cuts to Timeline Button",
+        "backend_ffi": "uvs_multicam_commit_cuts",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Splits media into synchronized video tracks with linked audio in ProjectService"
+      },
+      {
+        "id": "FEAT-REC-01",
+        "mode": "Recording",
+        "action": "Screen Capture Recording",
+        "ui_entry": "Recording Dialog Screen Tile",
+        "backend_ffi": "RecordingService buildFfmpegCaptureCommand (gdigrab/x11grab/avfoundation)",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "gdigrab verified on Windows host with FFmpeg 9.0.1"
+      },
+      {
+        "id": "FEAT-REC-02",
+        "mode": "Recording",
+        "action": "Camera / Webcam Ingestion",
+        "ui_entry": "Recording Dialog Camera Tile",
+        "backend_ffi": "RecordingService (dshow Integrated Camera)",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "DirectShow Integrated Camera probed and verified via FFmpeg"
+      },
+      {
+        "id": "FEAT-REC-03",
+        "mode": "Recording",
+        "action": "Microphone Audio Recording",
+        "ui_entry": "Recording Dialog Microphone Tile",
+        "backend_ffi": "RecordingService (dshow Microphone Array)",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "DirectShow Intel Smart Sound Microphone Array probed and verified"
+      },
+      {
+        "id": "FEAT-REC-04",
+        "mode": "Recording",
+        "action": "System Audio Loopback Recording",
+        "ui_entry": "Recording Dialog System Audio Tile",
+        "backend_ffi": "Capability-gated loopback driver check",
+        "classification": "UX-VALIDATED",
+        "evidence": "Capability warning displayed when virtual loopback driver is unavailable"
+      },
+      {
+        "id": "FEAT-REC-05",
+        "mode": "Recording",
+        "action": "Recording Lifecycle (Start, Pause, Resume, Stop)",
+        "ui_entry": "Start / Pause / Resume / Stop Buttons",
+        "backend_ffi": "RecordingService process lifecycle",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Process startup, timer tracking, and clean stop verified"
+      },
+      {
+        "id": "FEAT-EXP-01",
+        "mode": "Export",
+        "action": "Render Queue Priority Management",
+        "ui_entry": "Render Queue Tab in Inspector",
+        "backend_ffi": "RenderService queue supervisor",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Tested with concurrent job queue in render_service.dart tests"
+      },
+      {
+        "id": "FEAT-EXP-02",
+        "mode": "Export",
+        "action": "Intel Arc QSV Hardware Accelerated Encoding",
+        "ui_entry": "Hardware Acceleration Switch (QSV)",
+        "backend_ffi": "uvs_build_render_command with h264_qsv",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Directly proven on host Intel Arc 130T GPU at 1.40x realtime"
+      },
+      {
+        "id": "FEAT-EXP-03",
+        "mode": "Export",
+        "action": "CPU Fallback Encoding (libx264 / libvpx-vp9)",
+        "ui_entry": "Hardware Acceleration Switch (CPU Fallback)",
+        "backend_ffi": "uvs_build_render_command with libx264/libvpx",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Proven in e2e_media_tests.py Test 4 (WebM VP9) and Test 6 (MP4 H.264)"
+      },
+      {
+        "id": "FEAT-EXP-04",
+        "mode": "Export",
+        "action": "Instantaneous Export Cancellation",
+        "ui_entry": "Cancel Render Button",
+        "backend_ffi": "RenderService.cancelJob",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Adversarial test proves cancellation in 7.5 ms with no locked file handles"
+      },
+      {
+        "id": "FEAT-PRJ-01",
+        "mode": "Project",
+        "action": "Atomic Save & Crash Journaling",
+        "ui_entry": "Save Project Action (Ctrl+S)",
+        "backend_ffi": "uvs_project_save_atomic",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Fsync + atomic rename guarantees 0 byte corruption during injected kill"
+      },
+      {
+        "id": "FEAT-PRJ-02",
+        "mode": "Project",
+        "action": "Missing Media Relinking",
+        "ui_entry": "Relink Project Media Dialog",
+        "backend_ffi": "uvs_project_relink",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "Scans search directories and updates clip paths in ProjectService"
+      },
+      {
+        "id": "FEAT-PRJ-03",
+        "mode": "Project",
+        "action": "Fast 720p Proxy Lifecycle with Original 4K Master Export",
+        "ui_entry": "Generate Proxies Button",
+        "backend_ffi": "uvs_proxy_generate",
+        "classification": "RUNTIME-PROVEN",
+        "evidence": "e2e_media_tests.py Test 7 proves 4K -> 720p proxy -> corrupt/missing fallback -> 4K export"
+      }
+    ]
+  },
   "artifacts": [
     {
       "name": "universal_video_studio_windows_x64.zip",

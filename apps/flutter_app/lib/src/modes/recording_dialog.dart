@@ -14,6 +14,7 @@ class _RecordingDialogState extends State<RecordingDialog> {
   bool _recordScreen = true;
   bool _recordCamera = true;
   bool _recordMic = true;
+  bool _recordSystemAudio = false;
   bool _isRecording = false;
   String _selectedResolution = "1080p 60fps";
 
@@ -32,53 +33,77 @@ class _RecordingDialogState extends State<RecordingDialog> {
     final elapsed = rec.elapsedSeconds;
     final minutes = (elapsed ~/ 60).toString().padLeft(2, '0');
     final seconds = (elapsed % 60).toString().padLeft(2, '0');
+    final sysWarning = rec.getCapabilityWarning(RecordingSource.systemAudio);
 
     return AlertDialog(
       backgroundColor: StudioTheme.surfaceElevated,
       title: Row(
         children: [
           Icon(
-            isRec ? Icons.radio_button_checked : Icons.fiber_manual_record,
-            color: StudioTheme.accentRed,
+            isRec
+                ? (rec.isPaused ? Icons.pause_circle_outline : Icons.radio_button_checked)
+                : Icons.fiber_manual_record,
+            color: rec.isPaused ? Colors.amber : StudioTheme.accentRed,
           ),
           const SizedBox(width: 8),
-          Text(isRec ? "Recording ($minutes:$seconds)" : "Screen & Camera Recording"),
+          Text(isRec
+              ? "Recording ($minutes:$seconds)${rec.isPaused ? ' [PAUSED]' : ''}"
+              : "Screen & Camera Recording"),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SwitchListTile(
-            title: const Text("Capture Screen / Window"),
-            value: _recordScreen,
-            activeColor: StudioTheme.accentCyan,
-            onChanged: isRec ? null : (v) => setState(() => _recordScreen = v),
-          ),
-          SwitchListTile(
-            title: const Text("Capture Facecam (PiP)"),
-            value: _recordCamera,
-            activeColor: StudioTheme.accentCyan,
-            onChanged: isRec ? null : (v) => setState(() => _recordCamera = v),
-          ),
-          SwitchListTile(
-            title: const Text("Capture Microphone Audio"),
-            value: _recordMic,
-            activeColor: StudioTheme.accentCyan,
-            onChanged: isRec ? null : (v) => setState(() => _recordMic = v),
-          ),
-          const SizedBox(height: 12),
-          DropdownButton<String>(
-            isExpanded: true,
-            value: _selectedResolution,
-            dropdownColor: StudioTheme.surfaceHighlight,
-            items: ["1080p 60fps", "4K 30fps", "720p 60fps"].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-            onChanged: isRec
-                ? null
-                : (v) {
-                    if (v != null) setState(() => _selectedResolution = v);
-                  },
-          ),
-        ],
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              title: const Text("Capture Screen / Window"),
+              value: _recordScreen,
+              activeColor: StudioTheme.accentCyan,
+              onChanged: isRec ? null : (v) => setState(() => _recordScreen = v),
+            ),
+            SwitchListTile(
+              title: const Text("Capture Facecam (Integrated Camera)"),
+              value: _recordCamera,
+              activeColor: StudioTheme.accentCyan,
+              onChanged: isRec ? null : (v) => setState(() => _recordCamera = v),
+            ),
+            SwitchListTile(
+              title: const Text("Capture Microphone Audio"),
+              value: _recordMic,
+              activeColor: StudioTheme.accentCyan,
+              onChanged: isRec ? null : (v) => setState(() => _recordMic = v),
+            ),
+            SwitchListTile(
+              title: const Text("Capture System Audio Loopback"),
+              value: _recordSystemAudio,
+              activeColor: StudioTheme.accentCyan,
+              onChanged: isRec ? null : (v) => setState(() => _recordSystemAudio = v),
+            ),
+            if (_recordSystemAudio && sysWarning != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                child: Text(
+                  sysWarning,
+                  style: const TextStyle(color: Colors.amber, fontSize: 11),
+                ),
+              ),
+            const SizedBox(height: 12),
+            DropdownButton<String>(
+              isExpanded: true,
+              value: _selectedResolution,
+              dropdownColor: StudioTheme.surfaceHighlight,
+              items: ["1080p 60fps", "4K 30fps", "720p 60fps"]
+                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                  .toList(),
+              onChanged: isRec
+                  ? null
+                  : (v) {
+                      if (v != null) setState(() => _selectedResolution = v);
+                    },
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -90,6 +115,24 @@ class _RecordingDialogState extends State<RecordingDialog> {
           },
           child: const Text("Cancel"),
         ),
+        if (isRec)
+          OutlinedButton.icon(
+            icon: Icon(rec.isPaused ? Icons.play_arrow : Icons.pause, size: 16),
+            label: Text(rec.isPaused ? "Resume" : "Pause"),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white54),
+            ),
+            onPressed: () {
+              setState(() {
+                if (rec.isPaused) {
+                  rec.resumeRecording();
+                } else {
+                  rec.pauseRecording();
+                }
+              });
+            },
+          ),
         ElevatedButton.icon(
           icon: Icon(isRec ? Icons.stop : Icons.fiber_manual_record, color: Colors.white, size: 18),
           label: Text(isRec ? "Stop Recording" : "Start Recording"),
@@ -109,6 +152,9 @@ class _RecordingDialogState extends State<RecordingDialog> {
                 }
                 if (_recordMic && !rec.activeSources.contains(RecordingSource.microphone)) {
                   rec.toggleSource(RecordingSource.microphone);
+                }
+                if (_recordSystemAudio && !rec.activeSources.contains(RecordingSource.systemAudio)) {
+                  rec.toggleSource(RecordingSource.systemAudio);
                 }
                 if (rec.activeSources.isEmpty) {
                   rec.toggleSource(RecordingSource.screen);
@@ -140,5 +186,6 @@ class _RecordingDialogState extends State<RecordingDialog> {
         ),
       ],
     );
+
   }
 }

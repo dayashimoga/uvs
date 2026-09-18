@@ -14,6 +14,7 @@ class RecordingService extends ChangeNotifier {
   static RecordingService get instance => _instance ??= RecordingService._();
 
   bool _isRecording = false;
+  bool _isPaused = false;
   int _elapsedSeconds = 0;
   Timer? _timer;
   Process? _captureProcess;
@@ -21,11 +22,24 @@ class RecordingService extends ChangeNotifier {
   final Set<RecordingSource> _activeSources = {RecordingSource.screen, RecordingSource.microphone};
 
   bool get isRecording => _isRecording;
+  bool get isPaused => _isPaused;
   int get elapsedSeconds => _elapsedSeconds;
   String? get currentOutputPath => _currentOutputPath;
   Set<RecordingSource> get activeSources => Set.unmodifiable(_activeSources);
 
   RecordingService._();
+
+  void reset() {
+    if (_isRecording) {
+      stopRecording();
+    }
+    _isPaused = false;
+    _elapsedSeconds = 0;
+    _currentOutputPath = null;
+    _activeSources.clear();
+    _activeSources.addAll({RecordingSource.screen, RecordingSource.microphone});
+    notifyListeners();
+  }
 
   void toggleSource(RecordingSource source) {
     if (_isRecording) return;
@@ -40,6 +54,7 @@ class RecordingService extends ChangeNotifier {
   bool startRecording({String? outputPath}) {
     if (_isRecording || _activeSources.isEmpty) return false;
     _isRecording = true;
+    _isPaused = false;
     _elapsedSeconds = 0;
     _currentOutputPath = outputPath ??
         '${Directory.systemTemp.path}/uvs_rec_${DateTime.now().millisecondsSinceEpoch}.mp4';
@@ -60,9 +75,29 @@ class RecordingService extends ChangeNotifier {
     return true;
   }
 
+  void pauseRecording() {
+    if (!_isRecording || _isPaused) return;
+    _isPaused = true;
+    _timer?.cancel();
+    _timer = null;
+    notifyListeners();
+  }
+
+  void resumeRecording() {
+    if (!_isRecording || !_isPaused) return;
+    _isPaused = false;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _elapsedSeconds++;
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
   String stopRecording() {
     if (!_isRecording) return '';
     _isRecording = false;
+    _isPaused = false;
     _timer?.cancel();
     _timer = null;
 
@@ -127,14 +162,19 @@ class RecordingService extends ChangeNotifier {
 
   String? getCapabilityWarning(RecordingSource source) {
     if (source == RecordingSource.systemAudio) {
-      if (defaultTargetPlatform == TargetPlatform.macOS) {
+      if (defaultTargetPlatform == TargetPlatform.windows) {
+        return "System audio loopback requires Stereo Mix or Virtual Audio Cable.";
+      } else if (defaultTargetPlatform == TargetPlatform.macOS) {
         return "System audio recording on macOS requires an aggregate virtual audio driver.";
       } else if (defaultTargetPlatform == TargetPlatform.android) {
         return "System audio requires Android 10+ and app-level audio playback consent.";
+      } else if (defaultTargetPlatform == TargetPlatform.linux) {
+        return "System audio requires PulseAudio/PipeWire monitor source.";
       }
     }
     return null;
   }
+
 
   List<String> buildFfmpegCaptureCommand(String outputPath) {
     final args = <String>['ffmpeg', '-y'];

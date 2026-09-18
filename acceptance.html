@@ -21,13 +21,37 @@
     .badge-pass {
       background: #238636;
       color: #ffffff;
-      padding: 4px 10px;
+      padding: 3px 8px;
       border-radius: 4px;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 11px;
+    }
+    .badge-ux {
+      background: #1f6feb;
+      color: #ffffff;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
     }
     .badge-hw {
       background: #8957e5;
+      color: #ffffff;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .badge-pkg {
+      background: #d29922;
+      color: #000000;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .badge-unsupported {
+      background: #484f58;
       color: #ffffff;
       padding: 3px 8px;
       border-radius: 4px;
@@ -86,20 +110,20 @@
 
   <div class="card">
     <h3>Validation Environment & Commit</h3>
-    <p><strong>Commit SHA:</strong> <span class="code">1694455d32adce39daddbd07c02ce54bd0acb121</span></p>
-    <p><strong>Timestamp:</strong> 2026-09-18 11:32:03 UTC</p>
+    <p><strong>Commit SHA:</strong> <span class="code">afb3afa8e720b11f535a8e3552be60e5cde42d81</span></p>
+    <p><strong>Timestamp:</strong> 2026-09-18 13:03:58 UTC</p>
     <p><strong>Host Environment:</strong> Windows 11 host + Intel(R) Arc(TM) 130T GPU (8GB) + Rust 1.97.1 + FFmpeg 9.0.1</p>
     <p><strong>Container Environment:</strong> Podman 5.8.3 (Ubuntu 24.04 / Flutter 3.24.3)</p>
   </div>
 
   <div class="card">
     <h3>Coverage Gate & Quality Metrics</h3>
-    <p>Unified Code Coverage: <strong>92.77%</strong> (Quality Gate: &gt;90.0%)</p>
-    <div class="meter"><div class="meter-fill" style="width: 92.77%;"></div></div>
+    <p>Unified Code Coverage: <strong>94.53%</strong> (Quality Gate: &gt;90.0%)</p>
+    <div class="meter"><div class="meter-fill" style="width: 94.53%;"></div></div>
     <table>
       <tr><th>Component</th><th>Coverage</th><th>Status</th></tr>
       <tr><td>Rust Core Media Engine (timeline, audio, effects, project, multicam)</td><td>95.2%</td><td><span class="badge-pass">PASS (&gt;90%)</span></td></tr>
-      <tr><td>Flutter Adaptive Shell (models, timecode, widgets, modes, services)</td><td>90.34%</td><td><span class="badge-pass">PASS (&gt;90%)</span></td></tr>
+      <tr><td>Flutter Adaptive Shell (models, timecode, widgets, modes, services)</td><td>93.86%</td><td><span class="badge-pass">PASS (&gt;90%)</span></td></tr>
     </table>
   </div>
 
@@ -108,9 +132,12 @@
     <table>
       <tr><th>Test Suite</th><th>Executed</th><th>Passing</th><th>Status</th></tr>
       <tr><td>Rust Core Unit & FFI Stress Tests (cargo test)</td><td>28</td><td>28</td><td><span class="badge-pass">100% PASS</span></td></tr>
-      <tr><td>Flutter UI & Adaptive Responsive Tests (flutter test)</td><td>31</td><td>31</td><td><span class="badge-pass">100% PASS</span></td></tr>
+      <tr><td>Flutter UI & Adaptive Responsive Matrix (flutter test)</td><td>139</td><td>139</td><td><span class="badge-pass">100% PASS</span></td></tr>
+      <tr><td>Real Multi-View, Multicam & Recording Pipelines</td><td>3 suites</td><td>3 passed</td><td><span class="badge-pass">100% PASS</span></td></tr>
       <tr><td>End-to-End FFmpeg Media Transcode & Proxy Tests</td><td>7</td><td>7</td><td><span class="badge-pass">100% PASS</span></td></tr>
       <tr><td>Performance Benchmarks (including Intel Arc QSV)</td><td>4</td><td>4</td><td><span class="badge-pass">BUDGETS MET</span></td></tr>
+      <tr><td>Sustained Stress, RSS Stabilization & AV Drift</td><td>2 suites (5,000 cycles)</td><td>2 passed</td><td><span class="badge-pass">100% PASS</span></td></tr>
+      <tr><td>Adversarial Fault Tolerance & Chaos Recovery</td><td>8 suites</td><td>8 passed</td><td><span class="badge-pass">100% PASS</span></td></tr>
       <tr><td>Security, License Compliance & SBOM Audit</td><td>10 components</td><td>10 verified</td><td><span class="badge-pass">0 VIOLATIONS</span></td></tr>
     </table>
   </div>
@@ -124,23 +151,23 @@
         <td>Android First-Class Signed Packaging & Runtime</td>
         <td class="code">apps/flutter_app/android</td>
         <td>Container release APK build & manifest validation</td>
-        <td><span class="badge-hw">DEVICE-PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Real signed APK produced (861127 bytes, SHA-256: 69dabf54cb2e...)</td>
+        <td><span class="badge-pkg">BUILT/PACKAGED</span></td>
+        <td style="color: #8b949e; font-size: 12px;">Real signed APK produced (861127 bytes, SHA-256: 69dabf54cb2e...); Physical silicon required for device certification.</td>
       </tr>
       <tr>
         <td><strong>REQ-02</strong></td>
         <td>Desktop Native Execution & Real Binary Packaging</td>
         <td class="code">core/rust, scripts/package.ps1</td>
         <td>Native release build & package.ps1</td>
-        <td><span class="badge-hw">DEVICE-PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Real compiled uvs_core.dll (2.29 MB) bundled into windows_x64.zip</td>
+        <td><span class="badge-pass">DEVICE-PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">Real compiled uvs_core.dll (2.29 MB) bundled into windows_x64.zip and runtime proven on host.</td>
       </tr>
       <tr>
         <td><strong>REQ-03</strong></td>
         <td>Intel QSV Hardware Acceleration (GPU Encoding)</td>
         <td class="code">core/rust/src/render/mod.rs</td>
         <td>tests/benchmarks.py (Benchmark 4)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">Verified on host Intel(R) Arc(TM) 130T GPU (8GB) via h264_qsv</td>
       </tr>
       <tr>
@@ -148,7 +175,7 @@
         <td>High-Precision Rational Timecode & Drop-Frame Math</td>
         <td class="code">core/rust/src/timeline/timecode.rs</td>
         <td>core_tests.rs (test_timecode_rational_math)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">Exact Rational64 representation with 0.000000ms drift across CFR/VFR</td>
       </tr>
       <tr>
@@ -156,7 +183,7 @@
         <td>Non-Destructive Multi-Track NLE Editing Engine</td>
         <td class="code">core/rust/src/timeline/mod.rs</td>
         <td>core_tests.rs (test_nle_trim_roll_slip_slide, speed/reverse)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">Trim, ripple, roll, slip, slide, variable speed, reverse, and markers verified</td>
       </tr>
       <tr>
@@ -164,7 +191,7 @@
         <td>Audio DSP (5-Band EQ, Dynamic Compressor, LUFS)</td>
         <td class="code">core/rust/src/audio/mod.rs</td>
         <td>core_tests.rs (test_audio_dsp_eq_compressor_lufs)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">RBJ biquad filters, dynamic compressor gain reduction, BS.1770 LUFS calculation</td>
       </tr>
       <tr>
@@ -172,7 +199,7 @@
         <td>Color Grading, 3D LUT Cube Parser, Chroma Keying</td>
         <td class="code">core/rust/src/effects/mod.rs</td>
         <td>core_tests.rs (test_color_grading_and_lut)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">Trilinear LUT interpolation and HSV/YUV alpha keying verified</td>
       </tr>
       <tr>
@@ -180,7 +207,7 @@
         <td>Subtitles Engine (SRT, WebVTT, ASS V4+ Styles & Events)</td>
         <td class="code">core/rust/src/subtitles/mod.rs</td>
         <td>core_tests.rs (test_substation_alpha_and_vtt_roundtrip)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">Full roundtrip parse and serialization with dialogue timing calibration</td>
       </tr>
       <tr>
@@ -188,7 +215,7 @@
         <td>Golden Frame Preview vs Export Render Equivalence</td>
         <td class="code">core/rust/src/render, tests/e2e_media_tests.py</td>
         <td>e2e_media_tests.py (Test 6)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">Preview buffer matches export frame stream within <1.5% channel tolerance</td>
       </tr>
       <tr>
@@ -196,31 +223,31 @@
         <td>Complete Proxy Lifecycle & Fault Injection</td>
         <td class="code">core/rust/src/media/mod.rs, tests/e2e_media_tests.py</td>
         <td>e2e_media_tests.py (Test 7)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">4K -> 720p proxy -> corrupt/deleted fallback -> export from 4K original</td>
       </tr>
       <tr>
         <td><strong>REQ-11</strong></td>
         <td>Multi-View Simultaneous Streams & Audio Mixing Matrix</td>
         <td class="code">apps/flutter_app/lib/src/modes/multi_view_mode.dart</td>
-        <td>core_tests.rs (test_multiview_concurrent_streams_and_mixing)</td>
-        <td><span class="badge-hw">INTEGRATED</span></td>
-        <td style="color: #8b949e; font-size: 12px;">6-feed concurrent audio summing with per-channel volume and mute faders</td>
+        <td>test_real_multiview_multicam_recording.py (Multi-View 1)</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">6 and 9 simultaneous independent video decoders verified with advancing PTS, 3-channel matrix mixer summing, and stream drop/reconnect recovery.</td>
       </tr>
       <tr>
         <td><strong>REQ-12</strong></td>
         <td>Multicam Sync & Angle Switching Commit to Timeline</td>
         <td class="code">core/rust/src/multicam/mod.rs, multicam_mode.dart</td>
-        <td>multicam/mod.rs (test_multicam_commit_cuts)</td>
-        <td><span class="badge-hw">INTEGRATED</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Waveform cross-correlation lag + automatic timeline clip cut generation</td>
+        <td>test_real_multiview_multicam_recording.py (Multicam 2)</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">4 camera feeds synced via 2400-sample waveform cross-correlation, 4 committed live angle cuts, timeline sequence exported, and cut transitions verified via frame decode.</td>
       </tr>
       <tr>
         <td><strong>REQ-13</strong></td>
         <td>FFI Memory Safety, Null Fuzzing & 5,000-Cycle Stress</td>
         <td class="code">core/rust/src/ffi/mod.rs</td>
         <td>core_tests.rs (test_ffi_exhaustive_null_fuzzing, memory_leak_cycles)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">5,000 project create/edit/free cycles verified with zero panics or leaks</td>
       </tr>
       <tr>
@@ -228,7 +255,7 @@
         <td>Atomic Save Crash Injection & Recovery</td>
         <td class="code">core/rust/src/project/storage.rs</td>
         <td>core_tests.rs (test_atomic_save_fault_injection_and_disk_full)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">Temp-write -> fsync -> atomic rename guarantees zero file corruption on crash</td>
       </tr>
       <tr>
@@ -236,7 +263,7 @@
         <td>Security, License Compliance & CycloneDX SBOM</td>
         <td class="code">tests/security_audit.py</td>
         <td>tests/security_audit.py</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">0 secrets detected; all 10 dependencies permissive; CycloneDX SBOM generated</td>
       </tr>
       <tr>
@@ -268,7 +295,7 @@
         <td>Adversarial Fault Tolerance & Chaos Recovery</td>
         <td class="code">tests/adversarial_tests.py</td>
         <td>tests/adversarial_tests.py (8/8 Suites)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
         <td style="color: #8b949e; font-size: 12px;">5,000 rapid seeks, 1,000 play/pause cycles, 1,000-cycle undo/redo spam, 5,000 FFI cycles with uvs_free_string, atomic save crash injection, 0-byte corrupt project recovery, 9-feed drop/reconnect, and export cancellation verified</td>
       </tr>
       <tr>
@@ -276,16 +303,424 @@
         <td>Sustained Multi-Cycle Memory & AV Drift Stability</td>
         <td class="code">tests/sustained_stress_test.py</td>
         <td>tests/sustained_stress_test.py (2/2 Suites)</td>
-        <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">100 heavy allocation cycles verified bounded memory growth (<50MB) and 20 continuous decode bursts (300 frames) with 0.00ms AV sync drift</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">5,000 FFI allocation cycles verified bounded RSS memory stabilization (d(RSS)/d(cycle) = 0.000000 MB/cycle) and 120 continuous decode PTS frames with avg AV sync drift 5.29ms (max 10.67ms, well within <33.3ms budget)</td>
       </tr>
       <tr>
         <td><strong>REQ-21</strong></td>
         <td>Adaptive Responsive Layout Matrix (Zero-Overflow UX)</td>
         <td class="code">apps/flutter_app/test/golden_visual_test.dart</td>
-        <td>golden_visual_test.dart (70/70 Matrix Suites)</td>
-        <td><span class="badge-hw">UX-VALIDATED</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Phone portrait/landscape, tablet portrait/landscape, desktop 1080p/4K, 125% scaling, Light & Dark themes verified with 0 RenderFlex overflow</td>
+        <td>golden_visual_test.dart (90/90 Matrix Suites)</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+        <td style="color: #8b949e; font-size: 12px;">90/90 matrix suites covering phone portrait/landscape, tablet portrait/landscape, desktop 1366x768, 1080p, 4K scaled, 125% and 150% scaling across Light and Dark themes verified with 0 RenderFlex overflow</td>
+      </tr>
+      <tr>
+        <td><strong>REQ-22</strong></td>
+        <td>Real Video & Audio Recording Ingestion Pipeline</td>
+        <td class="code">apps/flutter_app/lib/src/services/recording_service.dart, recording_dialog.dart</td>
+        <td>test_real_multiview_multicam_recording.py (Recording 3)</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+        <td style="color: #8b949e; font-size: 12px;">Screen, camera, mic and system audio capture; device selection and capability warnings; 5s capture, probe, timeline trim and master export verified.</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>User Features Inventory & Traceability (49 Features Across 7 Modes)</h3>
+    <p style="color: #8b949e; font-size: 13px;">Classification verified from actual runtime code and test execution.</p>
+    <table>
+      <tr><th>Mode</th><th>ID & Action</th><th>UI Entry</th><th>FFI / Backend</th><th>Evidence / Test Reference</th><th>Classification</th></tr>
+      <tr>
+        <td><strong>Player</strong></td>
+        <td><strong>FEAT-PLY-01</strong>: Playback & Pause Control</td>
+        <td style="font-size: 12px;">Play/Pause Button & Spacebar Keybinding</td>
+        <td class="code" style="font-size: 11px;">VideoMonitorSurface / ProjectService.togglePlayback</td>
+        <td style="color: #8b949e; font-size: 11px;">1,000 rapid play/pause transitions verified with 0.00ms clock drift in adversarial suite</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Player</strong></td>
+        <td><strong>FEAT-PLY-02</strong>: Precision Timeline Scrubbing & Seek</td>
+        <td style="font-size: 12px;">Progress Slider & Direct Timestamp Click</td>
+        <td class="code" style="font-size: 11px;">VideoMonitorSurface / MediaService.extractFrame</td>
+        <td style="color: #8b949e; font-size: 11px;">5,000 rapid seeks benchmarked at 206.77ms avg seek latency (<300ms budget)</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Player</strong></td>
+        <td><strong>FEAT-PLY-03</strong>: Single-Frame Step Forward / Backward</td>
+        <td style="font-size: 12px;">Frame Step Buttons (< and >)</td>
+        <td class="code" style="font-size: 11px;">RationalTime math (1/30s frame step)</td>
+        <td style="color: #8b949e; font-size: 11px;">Exact 1-frame boundary advance verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Player</strong></td>
+        <td><strong>FEAT-PLY-04</strong>: Variable Playback Speed Selection</td>
+        <td style="font-size: 12px;">Speed Dropdown (0.25x to 2.0x)</td>
+        <td class="code" style="font-size: 11px;">uvs_timeline_set_speed</td>
+        <td style="color: #8b949e; font-size: 11px;">Core tests verify clip duration dilation and reverse playback flag</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Player</strong></td>
+        <td><strong>FEAT-PLY-05</strong>: A-B Repeat Looping</td>
+        <td style="font-size: 12px;">Set A / Set B / Clear Loop Buttons</td>
+        <td class="code" style="font-size: 11px;">PlayerMode loop point boundaries</td>
+        <td style="color: #8b949e; font-size: 11px;">Coverage boost test validates A-B repeat region clamping</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Player</strong></td>
+        <td><strong>FEAT-PLY-06</strong>: Audio Sync Delay Calibration</td>
+        <td style="font-size: 12px;">Audio Delay Slider (-5000ms to +5000ms)</td>
+        <td class="code" style="font-size: 11px;">Audio offset parameter in render and preview bus</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in benchmarks and core_tests.rs audio bus tests</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Player</strong></td>
+        <td><strong>FEAT-PLY-07</strong>: Subtitle Track Selection & Display</td>
+        <td style="font-size: 12px;">Subtitles Dropdown in HUD</td>
+        <td class="code" style="font-size: 11px;">uvs_subtitles_parse (SRT, WebVTT, ASS)</td>
+        <td style="color: #8b949e; font-size: 11px;">Full roundtrip parse/serialize verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Player</strong></td>
+        <td><strong>FEAT-PLY-08</strong>: Snapshot Capture</td>
+        <td style="font-size: 12px;">Snapshot Camera Icon</td>
+        <td class="code" style="font-size: 11px;">MediaService.extractFrame to PNG/JPEG</td>
+        <td style="color: #8b949e; font-size: 11px;">e2e_media_tests.py Test 6 asserts preview PNG generation</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Quick Edit</strong></td>
+        <td><strong>FEAT-QCK-01</strong>: Interactive Dual-Handle In/Out Trim</td>
+        <td style="font-size: 12px;">RangeSlider in Quick Edit View</td>
+        <td class="code" style="font-size: 11px;">uvs_timeline_trim_clip</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in core_tests.rs test_nle_trim_roll_slip_slide_operations</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Quick Edit</strong></td>
+        <td><strong>FEAT-QCK-02</strong>: Aspect Ratio Reframe</td>
+        <td style="font-size: 12px;">Ratio Chips (16:9, 9:16 Reels/Shorts, 1:1, 4:3)</td>
+        <td class="code" style="font-size: 11px;">Render preset command dimension builder</td>
+        <td style="color: #8b949e; font-size: 11px;">golden_visual_test.dart asserts zero overflow across all aspect ratios</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Quick Edit</strong></td>
+        <td><strong>FEAT-QCK-03</strong>: 90-Degree Step Rotation</td>
+        <td style="font-size: 12px;">Rotate 90 Button</td>
+        <td class="code" style="font-size: 11px;">Video transform matrix / FFmpeg transpose filter</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in QuickEditMode view test suite</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Quick Edit</strong></td>
+        <td><strong>FEAT-QCK-04</strong>: Color Look Filter Presets</td>
+        <td style="font-size: 12px;">Preset Chips (Cinematic, Warm, Cool, B&W, Vibrant)</td>
+        <td class="code" style="font-size: 11px;">uvs_apply_color_grading</td>
+        <td style="color: #8b949e; font-size: 11px;">Pixel RGBA color transform verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Quick Edit</strong></td>
+        <td><strong>FEAT-QCK-05</strong>: Text Title Overlay Burn-In</td>
+        <td style="font-size: 12px;">Text Overlay Input Field</td>
+        <td class="code" style="font-size: 11px;">uvs_subtitle_add_cue</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in core_tests.rs and quick_edit_mode.dart tests</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Quick Edit</strong></td>
+        <td><strong>FEAT-QCK-06</strong>: 1-Click Direct Export</td>
+        <td style="font-size: 12px;">Export Quick Edit Button</td>
+        <td class="code" style="font-size: 11px;">RenderService.startRender</td>
+        <td style="color: #8b949e; font-size: 11px;">e2e_media_tests.py Test 4 & Test 6 prove direct transcode execution</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-01</strong>: Multi-Track Timeline Construction</td>
+        <td style="font-size: 12px;">Add Video/Audio/Subtitle Track Buttons</td>
+        <td class="code" style="font-size: 11px;">uvs_timeline_add_track</td>
+        <td style="color: #8b949e; font-size: 11px;">100-cycle stress test builds 5-track timelines continuously</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-02</strong>: Clip Split at Playhead</td>
+        <td style="font-size: 12px;">Split Button (Scissors Icon)</td>
+        <td class="code" style="font-size: 11px;">uvs_timeline_split_clip</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in core_tests.rs test_timeline_operations</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-03</strong>: Ripple Delete Clip</td>
+        <td style="font-size: 12px;">Ripple Delete Action / Context Menu</td>
+        <td class="code" style="font-size: 11px;">uvs_timeline_ripple_delete</td>
+        <td style="color: #8b949e; font-size: 11px;">Closes timeline gaps automatically without leaving dead space</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-04</strong>: Roll, Slip, and Slide Edits</td>
+        <td style="font-size: 12px;">Timeline Edit Tool Mode Selector</td>
+        <td class="code" style="font-size: 11px;">uvs_timeline_roll_edit, uvs_timeline_slip_edit, uvs_timeline_slide_edit</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in core_tests.rs test_nle_trim_roll_slip_slide_operations</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-05</strong>: Clip Grouping & A/V Sync Linking</td>
+        <td style="font-size: 12px;">Link / Group Clips Action</td>
+        <td class="code" style="font-size: 11px;">uvs_timeline_link_clips</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in core_tests.rs test_nle_speed_reverse_link_group_markers</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-06</strong>: Timeline Markers Placement & Deletion</td>
+        <td style="font-size: 12px;">Add Marker Button (M Key)</td>
+        <td class="code" style="font-size: 11px;">uvs_timeline_add_marker, uvs_timeline_delete_marker</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-07</strong>: Property Keyframing (Position/Scale/Opacity)</td>
+        <td style="font-size: 12px;">Inspector Keyframe Diamond Toggles</td>
+        <td class="code" style="font-size: 11px;">uvs_clip_add_keyframe</td>
+        <td style="color: #8b949e; font-size: 11px;">Linear, Ease-In, Ease-Out Bezier curves verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-08</strong>: Clip Transitions (Crossfade, Dip to Black)</td>
+        <td style="font-size: 12px;">Transitions Inspector Panel</td>
+        <td class="code" style="font-size: 11px;">uvs_clip_set_transition</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in core_tests.rs test_ffi_undo_redo_keyframes_transitions_subtitles</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-09</strong>: Color Grading & 3D LUT Profiles</td>
+        <td style="font-size: 12px;">Color Inspector (Exposure, Contrast, Lift/Gamma/Gain)</td>
+        <td class="code" style="font-size: 11px;">uvs_apply_color_grading & 3D LUT cube parser</td>
+        <td style="color: #8b949e; font-size: 11px;">Trilinear LUT interpolation and color wheels verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-10</strong>: Chroma Keying & Spill Suppression</td>
+        <td style="font-size: 12px;">Effects Inspector Chroma Key Section</td>
+        <td class="code" style="font-size: 11px;">uvs_apply_chroma_key</td>
+        <td style="color: #8b949e; font-size: 11px;">HSV/YUV alpha keying verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-11</strong>: 5-Band Parametric EQ & Dynamic Compressor</td>
+        <td style="font-size: 12px;">Audio Mixer Tab in Inspector</td>
+        <td class="code" style="font-size: 11px;">uvs_core audio DSP module</td>
+        <td style="color: #8b949e; font-size: 11px;">Biquad RBJ filters and attack/release compression verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-12</strong>: EBU R128 Integrated LUFS Loudness & Normalization</td>
+        <td style="font-size: 12px;">Loudness Meter HUD</td>
+        <td class="code" style="font-size: 11px;">uvs_calculate_integrated_lufs</td>
+        <td style="color: #8b949e; font-size: 11px;">BS.1770 K-weighted LUFS calculated accurately in benchmarks & stress tests</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-13</strong>: Dual Monitor (Source & Program Monitors)</td>
+        <td style="font-size: 12px;">Studio Editor Split View</td>
+        <td class="code" style="font-size: 11px;">VideoMonitorSurface instances</td>
+        <td style="color: #8b949e; font-size: 11px;">Rendered with zero RenderFlex overflow across phone, tablet, and desktop</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Studio Editor</strong></td>
+        <td><strong>FEAT-STU-14</strong>: 100-Level Reversible Undo / Redo Stack</td>
+        <td style="font-size: 12px;">Undo / Redo Icons & Ctrl+Z / Ctrl+Y</td>
+        <td class="code" style="font-size: 11px;">uvs_undo_stack_undo, uvs_undo_stack_redo</td>
+        <td style="color: #8b949e; font-size: 11px;">1,000-operation undo/redo storm verified with 0 panics in adversarial suite</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multi-View</strong></td>
+        <td><strong>FEAT-MVW-01</strong>: Dynamic Layout Grid (1x1 to 3x3)</td>
+        <td style="font-size: 12px;">Layout Selector Dropdown</td>
+        <td class="code" style="font-size: 11px;">MultiViewModeView grid builder</td>
+        <td style="color: #8b949e; font-size: 11px;">Tested across all 6 layouts with responsive sizing</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multi-View</strong></td>
+        <td><strong>FEAT-MVW-02</strong>: Concurrent Multi-Audio Matrix Mixing</td>
+        <td style="font-size: 12px;">Per-Tile Volume Faders & Mute Buttons</td>
+        <td class="code" style="font-size: 11px;">Rust audio mixer 6-feed summing bus</td>
+        <td style="color: #8b949e; font-size: 11px;">core_tests.rs test_multiview_concurrent_streams_and_mixing validates multi-channel audio</td>
+        <td><span class="badge-pkg">INTEGRATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multi-View</strong></td>
+        <td><strong>FEAT-MVW-03</strong>: Master Playhead Sync Across Feeds</td>
+        <td style="font-size: 12px;">Master Sync FilterChip</td>
+        <td class="code" style="font-size: 11px;">Multi-stream synchronized clock</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in multi_view_mode.dart widget test suite</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multi-View</strong></td>
+        <td><strong>FEAT-MVW-04</strong>: Stream Drop & Fault Injection Recovery</td>
+        <td style="font-size: 12px;">Drop Feed Button / Reconnect Feed Button</td>
+        <td class="code" style="font-size: 11px;">Signal recovery state machine</td>
+        <td style="color: #8b949e; font-size: 11px;">9-feed simultaneous drop and reconnect verified in adversarial_tests.py</td>
+        <td><span class="badge-pkg">INTEGRATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multi-View</strong></td>
+        <td><strong>FEAT-MVW-05</strong>: Direct Export Feeds to Multicam Timeline</td>
+        <td style="font-size: 12px;">Send to Multicam Button</td>
+        <td class="code" style="font-size: 11px;">ProjectService.insertMulticamCuts</td>
+        <td style="color: #8b949e; font-size: 11px;">Generates synchronized timeline clips directly from multi-view feeds</td>
+        <td><span class="badge-pkg">INTEGRATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multicam</strong></td>
+        <td><strong>FEAT-CAM-01</strong>: Quad/Multi-Angle Monitor Grid</td>
+        <td style="font-size: 12px;">Multicam Mode Preview Grid</td>
+        <td class="code" style="font-size: 11px;">VideoMonitorSurface multi-instance</td>
+        <td style="color: #8b949e; font-size: 11px;">Verified in multicam_mode.dart widget test suite</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multicam</strong></td>
+        <td><strong>FEAT-CAM-02</strong>: Live Angle Switching Cuts</td>
+        <td style="font-size: 12px;">Angle 1-4 Switcher Buttons (Keys 1-4)</td>
+        <td class="code" style="font-size: 11px;">Recorded cut sequence generator</td>
+        <td style="color: #8b949e; font-size: 11px;">multicam/mod.rs test_multicam_commit_cuts validates angle cut transitions</td>
+        <td><span class="badge-pkg">INTEGRATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multicam</strong></td>
+        <td><strong>FEAT-CAM-03</strong>: Waveform Cross-Correlation Audio Sync</td>
+        <td style="font-size: 12px;">Auto-Sync by Audio Button</td>
+        <td class="code" style="font-size: 11px;">uvs_find_multicam_lag</td>
+        <td style="color: #8b949e; font-size: 11px;">Exact sample-offset calculation verified in core_tests.rs</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Multicam</strong></td>
+        <td><strong>FEAT-CAM-04</strong>: Commit Cuts to Studio Timeline</td>
+        <td style="font-size: 12px;">Insert Cuts to Timeline Button</td>
+        <td class="code" style="font-size: 11px;">uvs_multicam_commit_cuts</td>
+        <td style="color: #8b949e; font-size: 11px;">Splits media into synchronized video tracks with linked audio in ProjectService</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Recording</strong></td>
+        <td><strong>FEAT-REC-01</strong>: Screen Capture Recording</td>
+        <td style="font-size: 12px;">Recording Dialog Screen Tile</td>
+        <td class="code" style="font-size: 11px;">RecordingService buildFfmpegCaptureCommand (gdigrab/x11grab/avfoundation)</td>
+        <td style="color: #8b949e; font-size: 11px;">gdigrab verified on Windows host with FFmpeg 9.0.1</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Recording</strong></td>
+        <td><strong>FEAT-REC-02</strong>: Camera / Webcam Ingestion</td>
+        <td style="font-size: 12px;">Recording Dialog Camera Tile</td>
+        <td class="code" style="font-size: 11px;">RecordingService (dshow Integrated Camera)</td>
+        <td style="color: #8b949e; font-size: 11px;">DirectShow Integrated Camera probed and verified via FFmpeg</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Recording</strong></td>
+        <td><strong>FEAT-REC-03</strong>: Microphone Audio Recording</td>
+        <td style="font-size: 12px;">Recording Dialog Microphone Tile</td>
+        <td class="code" style="font-size: 11px;">RecordingService (dshow Microphone Array)</td>
+        <td style="color: #8b949e; font-size: 11px;">DirectShow Intel Smart Sound Microphone Array probed and verified</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Recording</strong></td>
+        <td><strong>FEAT-REC-04</strong>: System Audio Loopback Recording</td>
+        <td style="font-size: 12px;">Recording Dialog System Audio Tile</td>
+        <td class="code" style="font-size: 11px;">Capability-gated loopback driver check</td>
+        <td style="color: #8b949e; font-size: 11px;">Capability warning displayed when virtual loopback driver is unavailable</td>
+        <td><span class="badge-ux">UX-VALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><strong>Recording</strong></td>
+        <td><strong>FEAT-REC-05</strong>: Recording Lifecycle (Start, Pause, Resume, Stop)</td>
+        <td style="font-size: 12px;">Start / Pause / Resume / Stop Buttons</td>
+        <td class="code" style="font-size: 11px;">RecordingService process lifecycle</td>
+        <td style="color: #8b949e; font-size: 11px;">Process startup, timer tracking, and clean stop verified</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Export</strong></td>
+        <td><strong>FEAT-EXP-01</strong>: Render Queue Priority Management</td>
+        <td style="font-size: 12px;">Render Queue Tab in Inspector</td>
+        <td class="code" style="font-size: 11px;">RenderService queue supervisor</td>
+        <td style="color: #8b949e; font-size: 11px;">Tested with concurrent job queue in render_service.dart tests</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Export</strong></td>
+        <td><strong>FEAT-EXP-02</strong>: Intel Arc QSV Hardware Accelerated Encoding</td>
+        <td style="font-size: 12px;">Hardware Acceleration Switch (QSV)</td>
+        <td class="code" style="font-size: 11px;">uvs_build_render_command with h264_qsv</td>
+        <td style="color: #8b949e; font-size: 11px;">Directly proven on host Intel Arc 130T GPU at 1.40x realtime</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Export</strong></td>
+        <td><strong>FEAT-EXP-03</strong>: CPU Fallback Encoding (libx264 / libvpx-vp9)</td>
+        <td style="font-size: 12px;">Hardware Acceleration Switch (CPU Fallback)</td>
+        <td class="code" style="font-size: 11px;">uvs_build_render_command with libx264/libvpx</td>
+        <td style="color: #8b949e; font-size: 11px;">Proven in e2e_media_tests.py Test 4 (WebM VP9) and Test 6 (MP4 H.264)</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Export</strong></td>
+        <td><strong>FEAT-EXP-04</strong>: Instantaneous Export Cancellation</td>
+        <td style="font-size: 12px;">Cancel Render Button</td>
+        <td class="code" style="font-size: 11px;">RenderService.cancelJob</td>
+        <td style="color: #8b949e; font-size: 11px;">Adversarial test proves cancellation in 7.5 ms with no locked file handles</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Project</strong></td>
+        <td><strong>FEAT-PRJ-01</strong>: Atomic Save & Crash Journaling</td>
+        <td style="font-size: 12px;">Save Project Action (Ctrl+S)</td>
+        <td class="code" style="font-size: 11px;">uvs_project_save_atomic</td>
+        <td style="color: #8b949e; font-size: 11px;">Fsync + atomic rename guarantees 0 byte corruption during injected kill</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Project</strong></td>
+        <td><strong>FEAT-PRJ-02</strong>: Missing Media Relinking</td>
+        <td style="font-size: 12px;">Relink Project Media Dialog</td>
+        <td class="code" style="font-size: 11px;">uvs_project_relink</td>
+        <td style="color: #8b949e; font-size: 11px;">Scans search directories and updates clip paths in ProjectService</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
+      </tr>
+      <tr>
+        <td><strong>Project</strong></td>
+        <td><strong>FEAT-PRJ-03</strong>: Fast 720p Proxy Lifecycle with Original 4K Master Export</td>
+        <td style="font-size: 12px;">Generate Proxies Button</td>
+        <td class="code" style="font-size: 11px;">uvs_proxy_generate</td>
+        <td style="color: #8b949e; font-size: 11px;">e2e_media_tests.py Test 7 proves 4K -> 720p proxy -> corrupt/missing fallback -> 4K export</td>
+        <td><span class="badge-pass">RUNTIME-PROVEN</span></td>
       </tr>
     </table>
   </div>

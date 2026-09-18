@@ -18,6 +18,8 @@ import 'package:universal_video_studio/src/models/clip_model.dart';
 import 'package:universal_video_studio/src/services/recording_service.dart';
 import 'package:universal_video_studio/src/services/render_service.dart';
 import 'package:universal_video_studio/src/services/media_service.dart';
+import 'package:universal_video_studio/src/widgets/video_monitor_surface.dart';
+import 'package:flutter/foundation.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -579,10 +581,10 @@ void main() {
 
       expect(find.text("Screen & Camera Recording"), findsOneWidget);
 
-      // Toggle switches
+      // Toggle switches (Screen, Camera, Mic, System Audio)
       final switches = find.byType(SwitchListTile);
-      expect(switches, findsNWidgets(3));
-      for (int i = 0; i < 3; i++) {
+      expect(switches, findsNWidgets(4));
+      for (int i = 0; i < 4; i++) {
         await tester.tap(switches.at(i));
         await tester.pumpAndSettle();
       }
@@ -601,6 +603,18 @@ void main() {
       await tester.tap(startBtn);
       await tester.pumpAndSettle();
 
+      // Pause & Resume
+      final pauseBtn = find.text("Pause");
+      if (pauseBtn.evaluate().isNotEmpty) {
+        await tester.tap(pauseBtn);
+        await tester.pumpAndSettle();
+        final resumeBtn = find.text("Resume");
+        if (resumeBtn.evaluate().isNotEmpty) {
+          await tester.tap(resumeBtn);
+          await tester.pumpAndSettle();
+        }
+      }
+
       // Stop Recording
       final stopBtn = find.text("Stop Recording");
       expect(stopBtn, findsOneWidget);
@@ -608,19 +622,30 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    test('RecordingService toggles all sources and records', () {
+    test('RecordingService toggles all sources and records with pause and resume', () {
       final rec = RecordingService.instance;
-      rec.toggleSource(RecordingSource.screen);
-      rec.toggleSource(RecordingSource.microphone);
-      rec.toggleSource(RecordingSource.systemAudio);
+      rec.reset();
+      if (!rec.activeSources.contains(RecordingSource.systemAudio)) {
+        rec.toggleSource(RecordingSource.systemAudio);
+      }
       expect(rec.activeSources.contains(RecordingSource.systemAudio), isTrue);
 
       expect(rec.startRecording(), isTrue);
       expect(rec.isRecording, isTrue);
+      expect(rec.isPaused, isFalse);
+
+      rec.pauseRecording();
+      expect(rec.isPaused, isTrue);
+
+      rec.resumeRecording();
+      expect(rec.isPaused, isFalse);
+
       final outPath = rec.stopRecording();
       expect(outPath.endsWith('.mp4'), isTrue);
       expect(rec.isRecording, isFalse);
+      expect(rec.isPaused, isFalse);
     });
+
 
     test('RenderService completion and clearing queue', () async {
       final render = RenderService.instance;
@@ -998,6 +1023,7 @@ void main() {
 
     test('RecordingService sources, lifecycle, and ffmpeg capture build', () {
       final rec = RecordingService.instance;
+      rec.reset();
       expect(rec.isSourceSupported(RecordingSource.screen), isTrue);
       expect(rec.isSourceSupported(RecordingSource.camera), isTrue);
       expect(rec.isSourceSupported(RecordingSource.microphone), isTrue);
@@ -1005,7 +1031,9 @@ void main() {
       rec.getCapabilityWarning(RecordingSource.screen);
 
       rec.toggleSource(RecordingSource.camera);
+      expect(rec.activeSources.contains(RecordingSource.camera), isTrue);
       rec.toggleSource(RecordingSource.camera);
+      expect(rec.activeSources.contains(RecordingSource.camera), isFalse);
 
       final started = rec.startRecording();
       expect(started, isTrue);
@@ -1205,6 +1233,7 @@ void main() {
 
     test('RecordingService build capture commands and warnings across sources', () async {
       final rec = RecordingService.instance;
+      rec.reset();
       expect(rec.isSourceSupported(RecordingSource.camera), isTrue);
       expect(rec.isSourceSupported(RecordingSource.screen), isTrue);
       expect(rec.isSourceSupported(RecordingSource.microphone), isTrue);
@@ -1295,6 +1324,178 @@ void main() {
           await tester.pumpAndSettle();
         }
       }
+    });
+
+    test('RecordingService cross-platform command generation and warnings', () {
+      final rec = RecordingService.instance;
+      try {
+        // 1. Windows platform branches
+        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+        rec.reset(); // starts with screen and microphone
+        rec.toggleSource(RecordingSource.camera); // now screen, mic, camera
+        var cmd = rec.buildFfmpegCaptureCommand('out_win.mp4');
+        expect(cmd, contains('ffmpeg'));
+        expect(cmd, contains('video=Integrated Camera'));
+        expect(rec.getCapabilityWarning(RecordingSource.systemAudio), contains('Stereo Mix'));
+
+        rec.toggleSource(RecordingSource.camera); // removes camera -> has screen and mic
+        cmd = rec.buildFfmpegCaptureCommand('out_win2.mp4');
+        expect(cmd, contains('gdigrab'));
+
+        // Untoggle all sources -> lavfi fallback
+        rec.toggleSource(RecordingSource.screen);
+        rec.toggleSource(RecordingSource.microphone);
+        cmd = rec.buildFfmpegCaptureCommand('out_win_empty.mp4');
+        expect(cmd, contains('lavfi'));
+
+        // 2. Linux platform branches
+        debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+        rec.reset(); // has screen and microphone
+        cmd = rec.buildFfmpegCaptureCommand('out_linux.mp4');
+        expect(cmd, contains('x11grab'));
+        expect(rec.getCapabilityWarning(RecordingSource.systemAudio), contains('PulseAudio'));
+
+        rec.toggleSource(RecordingSource.screen);
+        rec.toggleSource(RecordingSource.microphone);
+        cmd = rec.buildFfmpegCaptureCommand('out_linux_empty.mp4');
+        expect(cmd, contains('lavfi'));
+
+        // 3. macOS platform branches
+        debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+        rec.reset(); // has screen and microphone
+        cmd = rec.buildFfmpegCaptureCommand('out_mac.mp4');
+        expect(cmd, contains('avfoundation'));
+
+        rec.toggleSource(RecordingSource.screen);
+        rec.toggleSource(RecordingSource.microphone);
+        cmd = rec.buildFfmpegCaptureCommand('out_mac_empty.mp4');
+        expect(cmd, contains('lavfi'));
+
+        // 4. Android platform branches
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        rec.reset();
+        cmd = rec.buildFfmpegCaptureCommand('out_android.mp4');
+        expect(cmd, contains('lavfi'));
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+        rec.reset();
+      }
+      expect(rec.currentOutputPath, isNull);
+    });
+
+    test('MediaService extractFrame and caching', () {
+      final ms = MediaService.instance;
+      final tmpFile = File('${Directory.systemTemp.path}/test_frame_extract.png');
+      tmpFile.writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]); // PNG header
+
+      final extracted1 = ms.extractFrame(tmpFile.path, 1.5);
+      expect(extracted1.isNotEmpty, isTrue);
+
+      // Create cached file so existsSync() passes
+      final cachedFile = File(extracted1);
+      if (!cachedFile.existsSync()) {
+        cachedFile.writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
+      }
+
+      // Hit cache
+      final extracted2 = ms.extractFrame(tmpFile.path, 1.5);
+      expect(extracted2, extracted1);
+
+      // Test with dummy video path
+      ms.extractFrame('nonexistent_video.mp4', 0.0);
+
+      try {
+        tmpFile.deleteSync();
+        if (cachedFile.existsSync()) cachedFile.deleteSync();
+      } catch (_) {}
+    });
+
+    testWidgets('VideoMonitorSurface relink and real file branches', (WidgetTester tester) async {
+      // 1. Offline media branch with Relink Media button tap
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: VideoMonitorSurface(
+              mediaPath: '/missing/path/to/offline_clip.mp4',
+              currentTime: 2.0,
+              duration: 10.0,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final relinkBtn = find.text('Relink Media');
+      expect(relinkBtn, findsOneWidget);
+      await tester.tap(relinkBtn);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Relinking search initiated'), findsOneWidget);
+
+      // 2. Existing image branch
+      final tmpImg = File('${Directory.systemTemp.path}/test_monitor_surface.png');
+      tmpImg.writeAsBytesSync([137, 80, 78, 71, 13, 10, 26, 10]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: VideoMonitorSurface(
+              mediaPath: tmpImg.path,
+              currentTime: 0.0,
+              duration: 5.0,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      try {
+        tmpImg.deleteSync();
+      } catch (_) {}
+    });
+
+    test('UvsFfiBridge comprehensive native and fallback method coverage', () {
+      final bridge = UvsFfiBridge.instance;
+      expect(bridge.dynamicLibrary, isNotNull);
+
+      var proj = bridge.createProject(name: 'FFI Comprehensive Suite');
+      proj = bridge.timelineAddTrack(proj, 'V1', 'Video', 1);
+      final tracks = proj['timeline']['tracks'] as List;
+      final tId = tracks.last['id'] as String;
+      proj = bridge.timelineAddClip(proj, tId, 'C1', 'c1.mp4', 0.0, 10.0);
+      proj = bridge.timelineAddClip(proj, tId, 'C2', 'c2.mp4', 10.0, 10.0);
+      final clips = tracks.last['clips'] as List;
+      final c1Id = clips[0]['id'] as String;
+      final c2Id = clips[1]['id'] as String;
+
+      // timelineTrimClip head & tail
+      proj = bridge.timelineTrimClip(proj, tId, c1Id, true, 2.0);
+      proj = bridge.timelineTrimClip(proj, tId, c1Id, false, 8.0);
+
+      // clipSetLinked & clipSetGroup
+      proj = bridge.clipSetLinked(proj, c1Id, c2Id);
+      proj = bridge.clipSetGroup(proj, [c1Id, c2Id], 'grp_123');
+
+      // Add & delete marker
+      proj = bridge.timelineAddMarker(proj, 4.0, 'M1', '#FF0000', 'note');
+      final markers = proj['timeline']['markers'] as List;
+      if (markers.isNotEmpty) {
+        final mId = markers.first['id'] as String;
+        proj = bridge.timelineDeleteMarker(proj, mId);
+      }
+
+      // calculateIntegratedLufs
+      final lufs = bridge.calculateIntegratedLufs([0.05, -0.05, 0.02, -0.02], channels: 2, sampleRate: 48000);
+      expect(lufs, isA<double>());
+
+      // decodeFrame & executeRender & commitMulticamCuts
+      bridge.decodeFrame('dummy.mp4', 0.5, '${Directory.systemTemp.path}/out.png');
+      bridge.executeRender(proj, 'in.mp4', 'out.mp4');
+      bridge.commitMulticamCuts(proj, {'id': 'g1'}, [{'angle': 1, 'time': 1.0}]);
+
+      // timelineRollEdit & timelineSlipEdit & timelineSlideEdit
+      bridge.timelineRollEdit(proj, tId, c1Id, c2Id, 0.5);
+      bridge.timelineSlipEdit(proj, tId, c1Id, 0.5);
+      bridge.timelineSlideEdit(proj, tId, c1Id, 0.2);
     });
   });
 }

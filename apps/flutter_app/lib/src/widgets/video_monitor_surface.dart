@@ -28,6 +28,7 @@ class VideoMonitorSurface extends StatefulWidget {
 class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
   String? _framePath;
   String? _resolvedMediaPath;
+  bool _isOffline = false;
 
   @override
   void initState() {
@@ -46,41 +47,31 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
   }
 
   void _resolveAndExtractFrame() {
-    String? path = widget.mediaPath;
-    if (path != null && File(path).existsSync()) {
-      _resolvedMediaPath = path;
-    } else {
-      final candidates = [
-        'tests/output/cam_test.mp4',
-        'tests/output/preview_frame_1s.png',
-        'tests/output/source_4k_test.mp4',
-        'tests/output/proxy_720p.mp4',
-        '../../tests/output/cam_test.mp4',
-        '../../tests/output/preview_frame_1s.png',
-      ];
-      _resolvedMediaPath = null;
-      for (final c in candidates) {
-        if (File(c).existsSync()) {
-          _resolvedMediaPath = c;
-          break;
-        }
-      }
+    _isOffline = false;
+    _framePath = null;
+    _resolvedMediaPath = null;
+
+    final path = widget.mediaPath;
+    if (path == null || path.isEmpty) {
+      // Clean idle monitor - no media assigned
+      return;
     }
 
-    if (_resolvedMediaPath != null) {
-      if (_resolvedMediaPath!.endsWith('.png') || _resolvedMediaPath!.endsWith('.jpg')) {
-        _framePath = _resolvedMediaPath;
+    if (File(path).existsSync()) {
+      _resolvedMediaPath = path;
+      if (path.endsWith('.png') || path.endsWith('.jpg')) {
+        _framePath = path;
       } else {
         try {
-          final extracted = MediaService.instance.extractFrame(
-            _resolvedMediaPath!,
-            widget.currentTime,
-          );
+          final extracted = MediaService.instance.extractFrame(path, widget.currentTime);
           if (extracted.isNotEmpty && File(extracted).existsSync()) {
             _framePath = extracted;
           }
         } catch (_) {}
       }
+    } else {
+      // Media path was explicitly specified but is missing from disk!
+      _isOffline = true;
     }
   }
 
@@ -88,7 +79,9 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
   Widget build(BuildContext context) {
     Widget videoContent;
 
-    if (_framePath != null && File(_framePath!).existsSync()) {
+    if (_isOffline) {
+      videoContent = _buildMediaOfflineView();
+    } else if (_framePath != null && File(_framePath!).existsSync()) {
       videoContent = Image.file(
         File(_framePath!),
         fit: widget.fit,
@@ -112,6 +105,73 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
       ),
     );
   }
+
+  Widget _buildMediaOfflineView() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E0A0A),
+        border: Border.all(color: StudioTheme.accentRed, width: 2),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.videocam_off_outlined,
+                size: 36,
+                color: StudioTheme.accentRed,
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "MEDIA OFFLINE",
+                style: TextStyle(
+                  color: StudioTheme.accentRed,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.mediaPath ?? "Unknown File",
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.link, size: 12),
+                label: const Text("Relink Media", style: TextStyle(fontSize: 10)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: StudioTheme.surfaceElevated,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  side: const BorderSide(color: StudioTheme.accentRed, width: 1),
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Relinking search initiated for: ${widget.mediaPath}"),
+                      backgroundColor: StudioTheme.surfaceElevated,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildSyntheticRaster() {
     return Container(
@@ -169,3 +229,4 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
     );
   }
 }
+

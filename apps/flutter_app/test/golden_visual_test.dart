@@ -63,10 +63,13 @@ void main() {
       {'name': 'phone_landscape', 'size': const Size(844, 390), 'ratio': 1.0},
       {'name': 'tablet_portrait', 'size': const Size(800, 1280), 'ratio': 1.0},
       {'name': 'tablet_landscape', 'size': const Size(1280, 800), 'ratio': 1.0},
+      {'name': 'desktop_1366x768', 'size': const Size(1366, 768), 'ratio': 1.0},
       {'name': 'desktop_1080p', 'size': const Size(1920, 1080), 'ratio': 1.0},
       {'name': 'desktop_4k_scaled', 'size': const Size(1920, 1080), 'ratio': 2.0},
       {'name': 'desktop_125_scaling', 'size': const Size(1536, 864), 'ratio': 1.25},
+      {'name': 'desktop_150_scaling', 'size': const Size(1280, 720), 'ratio': 1.5},
     ];
+
 
     for (final res in resolutions) {
       final resName = res['name'] as String;
