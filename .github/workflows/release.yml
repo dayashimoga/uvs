@@ -2,8 +2,10 @@ name: Production Multi-Platform Release
 
 on:
   push:
+    branches: [ main ]
     tags:
       - 'v*'
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
@@ -66,6 +68,15 @@ jobs:
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk
+
+      - name: Locate Android NDK
+        run: |
+          NDK_DIR=$(find $ANDROID_SDK_ROOT/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)
+          if [ -n "$NDK_DIR" ]; then
+            echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
+            echo "ANDROID_NDK_ROOT=$NDK_DIR" >> $GITHUB_ENV
+            echo "Using Android NDK: $NDK_DIR"
+          fi
 
       - name: Compile Rust Core for Android ABIs
         run: |
