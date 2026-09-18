@@ -10,6 +10,7 @@ import '../widgets/audio_mixer_view.dart';
 import '../widgets/color_inspector_view.dart';
 import '../services/project_service.dart';
 import '../services/render_service.dart';
+import '../widgets/video_monitor_surface.dart';
 
 class StudioEditorModeView extends StatefulWidget {
   const StudioEditorModeView({super.key});
@@ -356,17 +357,13 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Video Surface Simulation
-                      Row(
-                        children: [
-                          Expanded(child: Container(color: const Color(0xFFC0C0C0))),
-                          Expanded(child: Container(color: const Color(0xFFC0C000))),
-                          Expanded(child: Container(color: const Color(0xFF00C0C0))),
-                          Expanded(child: Container(color: const Color(0xFF00C000))),
-                          Expanded(child: Container(color: const Color(0xFFC000C0))),
-                          Expanded(child: Container(color: const Color(0xFFC00000))),
-                          Expanded(child: Container(color: const Color(0xFF0000C0))),
-                        ],
+                      Positioned.fill(
+                        child: VideoMonitorSurface(
+                          mediaPath: _selectedClip?.mediaPath,
+                          currentTime: _playheadTime,
+                          duration: _project.duration,
+                          isPlaying: _isPlaying,
+                        ),
                       ),
                       // Selected Clip Badge
                       if (_selectedClip != null)

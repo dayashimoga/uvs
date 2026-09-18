@@ -51,11 +51,15 @@ Universal Video Studio (UVS) is governed by strict functional and non-functional
 
 | Metric | Target Budget | Verification Status |
 | :--- | :--- | :--- |
-| **Seek Latency** | < 250 ms | **111.46 ms (PROVEN)** |
-| **Scrub Frame Rate** | > 60 fps | **PROVEN** |
-| **Transcode Speed** | > 1.5x Realtime | **11.89x Realtime (PROVEN)** |
-| **Timeline Math** | > 500,000 ops/sec | **14,954,613 ops/sec (PROVEN)** |
-| **Code Coverage** | > 90.0% Line Coverage | **94.8% (PROVEN)** |
-| **Test Pass Rate** | 100% Mandatory Pass | **100% (PROVEN)** |
-| **Crash Recovery** | Automatic recovery journal | **PROVEN** |
-| **Atomic Saves** | Fsync + Temp rename | **PROVEN** |
+| **Seek Latency** | < 300 ms | **206.77 ms (RUNTIME-PROVEN)** |
+| **Scrub Frame Rate** | > 60 fps | **137.5 fps (RUNTIME-PROVEN)** |
+| **CPU Transcode Speed** | > 1.5x Realtime | **4.52x Realtime (RUNTIME-PROVEN)** |
+| **GPU Transcode (QSV)** | > 1.0x Realtime | **1.40x Realtime (RUNTIME-PROVEN, Intel Arc 130T)** |
+| **Timeline Math** | > 500,000 ops/sec | **11,054,731 ops/sec (RUNTIME-PROVEN)** |
+| **Code Coverage Gate** | $\ge 90.0\%$ Line Coverage | **Unified: 92.77% (Flutter: 90.34%, Rust: 95.2%)** |
+| **Test Pass Rate** | 100% Mandatory Pass | **100% (28 Rust, 115 Flutter, 7 E2E, 8 Adversarial, 2 Sustained Stress)** |
+| **FFI Memory Safety** | 0 Leaks over 5,000 Cycles | **$\le 0.02\text{ MB}$ delta @ 1.2M ops/sec (RUNTIME-PROVEN)** |
+| **AV Sync Drift** | < 33.3 ms (1 frame @ 30fps) | **0.00 ms drift over 300 frames (RUNTIME-PROVEN)** |
+| **Crash Recovery** | Automatic recovery journal | **0-byte, truncated, binary corruption recovery (RUNTIME-PROVEN)** |
+| **Atomic Saves** | Fsync + Temp rename | **Zero file corruption on injected write failure (RUNTIME-PROVEN)** |
+

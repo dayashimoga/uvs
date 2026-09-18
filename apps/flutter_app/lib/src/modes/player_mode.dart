@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/timecode.dart';
 import '../services/media_service.dart';
+import '../widgets/video_monitor_surface.dart';
 
 class PlayerModeView extends StatefulWidget {
   const PlayerModeView({super.key});
@@ -198,16 +199,13 @@ class _PlayerModeViewState extends State<PlayerModeView> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: Container(color: const Color(0xFFC0C0C0))),
-                          Expanded(child: Container(color: const Color(0xFFC0C000))),
-                          Expanded(child: Container(color: const Color(0xFF00C0C0))),
-                          Expanded(child: Container(color: const Color(0xFF00C000))),
-                          Expanded(child: Container(color: const Color(0xFFC000C0))),
-                          Expanded(child: Container(color: const Color(0xFFC00000))),
-                          Expanded(child: Container(color: const Color(0xFF0000C0))),
-                        ],
+                      Positioned.fill(
+                        child: VideoMonitorSurface(
+                          mediaPath: _mediaPath,
+                          currentTime: _currentTime,
+                          duration: _totalDuration,
+                          isPlaying: _isPlaying,
+                        ),
                       ),
                       // Top Left Media Info Chip
                       Positioned(

@@ -30,6 +30,7 @@ class MediaService extends ChangeNotifier {
 
   final Map<String, MediaProbeResult> _cache = {};
   final Map<String, List<double>> _waveformCache = {};
+  final Map<String, String> _frameCache = {};
 
   MediaService._();
 
@@ -38,19 +39,50 @@ class MediaService extends ChangeNotifier {
       return _cache[path]!;
     }
 
-    final file = File(path);
-    final exists = file.existsSync();
-    final size = exists ? file.lengthSync() : 0;
+    final raw = UvsFfiBridge.instance.probeMedia(path);
+    double duration = 10.0;
+    int width = 1920;
+    int height = 1080;
+    double fps = 30.0;
+    int audioChannels = 2;
+    int sampleRate = 48000;
 
-    // Deterministic probe heuristic if ffprobe is not invoked directly
+    if (raw.containsKey('format')) {
+      final fmt = raw['format'];
+      if (fmt is Map && fmt.containsKey('duration')) {
+        duration = double.tryParse(fmt['duration']?.toString() ?? '') ?? 10.0;
+      }
+    }
+
+    if (raw.containsKey('streams') && raw['streams'] is List) {
+      for (final s in raw['streams'] as List) {
+        if (s is Map) {
+          if (s['codec_type'] == 'video') {
+            width = int.tryParse(s['width']?.toString() ?? '') ?? width;
+            height = int.tryParse(s['height']?.toString() ?? '') ?? height;
+            final rFps = s['r_frame_rate']?.toString() ?? '';
+            if (rFps.contains('/')) {
+              final parts = rFps.split('/');
+              final num = double.tryParse(parts[0]) ?? 30.0;
+              final den = double.tryParse(parts[1]) ?? 1.0;
+              fps = (den > 0) ? num / den : 30.0;
+            }
+          } else if (s['codec_type'] == 'audio') {
+            audioChannels = int.tryParse(s['channels']?.toString() ?? '') ?? audioChannels;
+            sampleRate = int.tryParse(s['sample_rate']?.toString() ?? '') ?? sampleRate;
+          }
+        }
+      }
+    }
+
     final result = MediaProbeResult(
       path: path,
-      durationSeconds: (size > 0) ? (size / (1024 * 1024 * 2)).clamp(1.0, 3600.0) : 10.0,
-      width: 1920,
-      height: 1080,
-      fps: 30.0,
-      audioChannels: 2,
-      sampleRate: 48000,
+      durationSeconds: duration,
+      width: width,
+      height: height,
+      fps: fps,
+      audioChannels: audioChannels,
+      sampleRate: sampleRate,
     );
 
     _cache[path] = result;
@@ -67,7 +99,25 @@ class MediaService extends ChangeNotifier {
   }
 
   String createProxy(String mediaPath, {int targetHeight = 720}) {
-    final proxyName = '${mediaPath}_proxy_${targetHeight}p.mp4';
-    return proxyName;
+    final targetPath = '${mediaPath}_proxy_${targetHeight}p.mp4';
+    final res = UvsFfiBridge.instance.generateProxy(mediaPath, targetPath, targetHeight);
+    return res['proxy_path'] as String? ?? targetPath;
+  }
+
+  String extractFrame(String mediaPath, double timeS, {String? outPngPath}) {
+    final key = '${mediaPath}_${timeS.toStringAsFixed(2)}';
+    if (_frameCache.containsKey(key)) {
+      final cached = _frameCache[key]!;
+      if (File(cached).existsSync()) {
+        return cached;
+      }
+    }
+    final targetOut = outPngPath ?? '${Directory.systemTemp.path}/uvs_frame_${DateTime.now().microsecondsSinceEpoch}.png';
+    final res = UvsFfiBridge.instance.decodeFrame(mediaPath, timeS, targetOut);
+    final outPath = res['path'] as String? ?? targetOut;
+    if (outPath.isNotEmpty) {
+      _frameCache[key] = outPath;
+    }
+    return outPath;
   }
 }

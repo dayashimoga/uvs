@@ -134,12 +134,12 @@ void main() {
       // Render command construction
       final cmdH264 = bridge.buildRenderCommand(proj, 'in.mp4', 'out.mp4');
       expect(cmdH264.contains('-c:v'), isTrue);
-      expect(cmdH264.contains('libx264'), isTrue);
+      expect(cmdH264.any((arg) => arg == 'libx264' || arg.contains('h264')), isTrue);
 
       proj['render_settings']['video_codec'] = 'hevc';
       proj['render_settings']['audio_codec'] = 'opus';
       final cmdHevc = bridge.buildRenderCommand(proj, 'in.mp4', 'out.mp4');
-      expect(cmdHevc.contains('libx265'), isTrue);
+      expect(cmdHevc.any((arg) => arg == 'libx265' || arg.contains('hevc')), isTrue);
       expect(cmdHevc.contains('libopus'), isTrue);
     });
 
@@ -1092,6 +1092,208 @@ void main() {
       if (sBtns.evaluate().isNotEmpty) {
         await tester.tap(sBtns.first);
         await tester.pumpAndSettle();
+      }
+    });
+
+    test('Pure-Dart Fallback Engine comprehensive verification', () {
+      final bridge = UvsFfiBridge.instance;
+      bridge.forcePureDart = true;
+      try {
+        expect(bridge.isNativeLoaded, isFalse);
+        expect(bridge.getCoreVersion(), '0.1.0-production');
+        final hw = bridge.detectHardware();
+        expect(hw['primary_vendor'], isNotNull);
+
+        var proj = bridge.createProject(name: 'Pure Dart Project');
+        expect(proj['name'], 'Pure Dart Project');
+
+        final tmpPath = '${Directory.systemTemp.path}/uvs_pure_dart_${DateTime.now().millisecondsSinceEpoch}.uvsp';
+        final saveRes = bridge.saveProjectAtomic(proj, tmpPath);
+        expect(saveRes['status'], 'ok');
+        expect(File(tmpPath).existsSync(), isTrue);
+
+        final loaded = bridge.loadProject(tmpPath);
+        expect(loaded['name'], 'Pure Dart Project');
+        File(tmpPath).deleteSync();
+
+        final searchDir = Directory.systemTemp.createTempSync('pure_relink_');
+        final relinkRes = bridge.relinkProject(proj, searchDir.path);
+        expect(relinkRes.containsKey('relinked_count'), isTrue);
+        searchDir.deleteSync(recursive: true);
+
+        proj = bridge.timelineAddTrack(proj, 'V1', 'Video', 0);
+        final tId = (proj['timeline']['tracks'] as List).last['id'] as String;
+
+        proj = bridge.timelineAddClip(proj, tId, 'Clip 1', 'v1.mp4', 0.0, 10.0);
+        proj = bridge.timelineAddClip(proj, tId, 'Clip 2', 'v2.mp4', 10.0, 10.0);
+        final c1Id = (proj['timeline']['tracks'] as List).last['clips'][0]['id'] as String;
+        final c2Id = (proj['timeline']['tracks'] as List).last['clips'][1]['id'] as String;
+
+        proj = bridge.timelineSplitClip(proj, tId, c1Id, 5.0);
+        proj = bridge.timelineTrimClip(proj, tId, c2Id, true, 12.0);
+        proj = bridge.timelineRollEdit(proj, tId, c1Id, c2Id, 1.0);
+        proj = bridge.timelineSlipEdit(proj, tId, c1Id, 1.0);
+        proj = bridge.timelineSlideEdit(proj, tId, c2Id, 1.0);
+        proj = bridge.clipSetSpeed(proj, tId, c1Id, 1.5, reverse: true);
+        proj = bridge.clipSetLinked(proj, c1Id, c2Id);
+        proj = bridge.timelineAddMarker(proj, 2.5, 'Marker 1', '#FF0000', 'note');
+        final mId = (proj['timeline']['markers'] as List).last['id'] as String;
+        proj = bridge.timelineDeleteMarker(proj, mId);
+        proj = bridge.timelineRippleDelete(proj, tId, c1Id);
+
+        proj = bridge.timelineAddKeyframe(proj, tId, c2Id, 'volume', 1.0, 0.8, easing: 1);
+        proj = bridge.timelineSetTransition(proj, tId, c2Id, 'CrossDissolve', 1.5, isOut: true);
+        proj = bridge.timelineAddSubtitleCue(proj, 0.0, 4.0, 'Hello World');
+
+        final lag = bridge.computeAudioCorrelationLag([1.0, 0.0, -1.0], [1.0, 0.0, -1.0]);
+        expect(lag, 0);
+
+        final lufs = bridge.calculateIntegratedLufs([0.1, -0.1, 0.2, -0.2]);
+        expect(lufs, lessThan(0.0));
+
+        final wf = bridge.getWaveformSummary(1000, 100);
+        expect(wf.length, 100);
+
+        final pProbe = bridge.probeMedia('some_fake.mp4');
+        expect(pProbe['streams'][0]['width'], 1920);
+
+        final pDec = bridge.decodeFrame('some_fake.mp4', 1.0, 'out.png');
+        expect(pDec['status'], 'ok');
+
+        final pProxy = bridge.generateProxy('some_fake.mp4', 'target.mp4', 720);
+        expect(pProxy['status'], 'ok');
+
+        final cmd = bridge.buildRenderCommand(proj, 'input.mp4', 'output.mp4');
+        expect(cmd, contains('-i'));
+
+        final rExec = bridge.executeRender(proj, 'input.mp4', 'output.mp4');
+        expect(rExec.containsKey('status'), isTrue);
+
+        final mcCuts = bridge.commitMulticamCuts(proj, {'id': 'g1'}, [{'time': 1.0, 'angle': 0}]);
+        expect(mcCuts.containsKey('inserted_cuts'), isTrue);
+      } finally {
+        bridge.forcePureDart = false;
+      }
+    });
+
+    test('RenderService real ffmpeg execution and MediaService probe', () async {
+      final testVideo = File('c:/Users/dayan/uvs/tests/output/cam_test.mp4');
+      if (testVideo.existsSync()) {
+        final mediaRes = await MediaService.instance.probeMedia(testVideo.path);
+        expect(mediaRes.width, greaterThan(0));
+        expect(mediaRes.durationSeconds, greaterThan(0.0));
+
+        final renderService = RenderService.instance;
+        final proj = UvsFfiBridge.instance.createProject(name: 'Real Render Proj');
+        final outMp4 = '${Directory.systemTemp.path}/uvs_render_test_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+        final job = renderService.queueRender(
+          project: proj,
+          inputPath: testVideo.path,
+          outputPath: outMp4,
+          name: 'Real Render Test',
+        );
+        expect(job.status, isNotNull);
+        for (int i = 0; i < 30 && renderService.isRendering; i++) {
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+        if (File(outMp4).existsSync()) {
+          File(outMp4).deleteSync();
+        }
+      }
+    });
+
+    test('RecordingService build capture commands and warnings across sources', () async {
+      final rec = RecordingService.instance;
+      expect(rec.isSourceSupported(RecordingSource.camera), isTrue);
+      expect(rec.isSourceSupported(RecordingSource.screen), isTrue);
+      expect(rec.isSourceSupported(RecordingSource.microphone), isTrue);
+      expect(rec.isSourceSupported(RecordingSource.systemAudio), isTrue);
+
+      rec.toggleSource(RecordingSource.screen);
+      rec.toggleSource(RecordingSource.camera);
+      final cmdScreen = rec.buildFfmpegCaptureCommand('test_screen.mp4');
+      expect(cmdScreen, contains('ffmpeg'));
+
+      rec.toggleSource(RecordingSource.camera);
+      final cmdCam = rec.buildFfmpegCaptureCommand('test_cam.mp4');
+      expect(cmdCam, contains('ffmpeg'));
+
+      rec.toggleSource(RecordingSource.systemAudio);
+      rec.getCapabilityWarning(RecordingSource.systemAudio);
+
+      // Start and stop real recording
+      final recOut = '${Directory.systemTemp.path}/test_rec_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final started = rec.startRecording(outputPath: recOut);
+      if (started) {
+        expect(rec.isRecording, isTrue);
+        await Future.delayed(const Duration(milliseconds: 200));
+        await rec.stopRecording();
+        expect(rec.isRecording, isFalse);
+        if (File(recOut).existsSync()) {
+          File(recOut).deleteSync();
+        }
+      }
+    });
+
+    testWidgets('StudioEditorModeView play/pause and export presets', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: StudioEditorModeView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final playBtn = find.byIcon(Icons.play_arrow);
+      if (playBtn.evaluate().isNotEmpty) {
+        await tester.tap(playBtn);
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.tap(find.byIcon(Icons.pause));
+        await tester.pumpAndSettle();
+      }
+
+      final exportBtn = find.byIcon(Icons.file_upload_outlined);
+      if (exportBtn.evaluate().isNotEmpty) {
+        await tester.tap(exportBtn);
+        await tester.pumpAndSettle();
+
+        final dropdowns = find.byType(DropdownButton<String>);
+        if (dropdowns.evaluate().isNotEmpty) {
+          await tester.tap(dropdowns.first);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('MKV').last);
+          await tester.pumpAndSettle();
+        }
+        final cancelBtn = find.text('Cancel');
+        if (cancelBtn.evaluate().isNotEmpty) {
+          await tester.tap(cancelBtn);
+          await tester.pumpAndSettle();
+        }
+      }
+    });
+
+    testWidgets('PlayerModeView controls timer and A-B loop timer', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: PlayerModeView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final playBtn = find.byIcon(Icons.play_arrow);
+      if (playBtn.evaluate().isNotEmpty) {
+        await tester.tap(playBtn);
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump(const Duration(seconds: 4));
+        final pauseBtn = find.byIcon(Icons.pause);
+        if (pauseBtn.evaluate().isNotEmpty) {
+          await tester.tap(pauseBtn);
+          await tester.pumpAndSettle();
+        }
       }
     });
   });

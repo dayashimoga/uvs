@@ -76,9 +76,30 @@ impl Default for TimecodeConfig {
 }
 
 /// Exact rational time representation in seconds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct RationalTime {
     pub seconds: Rational64,
+}
+
+impl<'de> serde::Deserialize<'de> for RationalTime {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum TimeHelper {
+            Float(f64),
+            Int(i64),
+            Struct { seconds: Rational64 },
+        }
+
+        match TimeHelper::deserialize(deserializer)? {
+            TimeHelper::Float(f) => Ok(RationalTime::from_f64(f)),
+            TimeHelper::Int(i) => Ok(RationalTime::from_seconds(i, 1)),
+            TimeHelper::Struct { seconds } => Ok(RationalTime { seconds }),
+        }
+    }
 }
 
 impl RationalTime {

@@ -64,7 +64,13 @@ pub extern "C" fn uvs_project_new(
             drop_frame: drop_frame != 0,
         };
 
-        let proj = Project::new(name_str, width.max(1), height.max(1), config);
+        let mut proj = Project::new(name_str, width.max(1), height.max(1), config);
+        let mut v1 = Track::new("Video 1", TrackType::Video, 0);
+        v1.id = "v1".to_string();
+        let mut a1 = Track::new("Audio 1", TrackType::Audio, 1);
+        a1.id = "a1".to_string();
+        proj.timeline.add_track(v1);
+        proj.timeline.add_track(a1);
         proj.to_json().unwrap_or_else(|_| "{}".into())
     });
 
@@ -559,6 +565,34 @@ pub extern "C" fn uvs_timeline_add_marker(
     match res {
         Ok(s) => to_c_string(s),
         Err(_) => err_json("Panic in uvs_timeline_add_marker"),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_timeline_delete_marker(
+    project_json: *const c_char,
+    marker_id: *const c_char,
+) -> *mut c_char {
+    if project_json.is_null() || marker_id.is_null() {
+        return err_json("Null argument to uvs_timeline_delete_marker");
+    }
+
+    let res = catch_unwind(|| {
+        let json_str = unsafe { CStr::from_ptr(project_json).to_str().unwrap_or("") };
+        let mid = unsafe { CStr::from_ptr(marker_id).to_str().unwrap_or("") };
+
+        match Project::from_json(json_str) {
+            Ok(mut proj) => {
+                proj.timeline.remove_marker(mid);
+                proj.to_json().unwrap_or_else(|_| "{}".into())
+            }
+            Err(e) => format!("{{\"error\": \"{}\"}}", e),
+        }
+    });
+
+    match res {
+        Ok(s) => to_c_string(s),
+        Err(_) => err_json("Panic in uvs_timeline_delete_marker"),
     }
 }
 
@@ -1224,3 +1258,153 @@ pub extern "C" fn uvs_subtitle_add_cue(
         Err(_) => err_json("Panic in uvs_subtitle_add_cue"),
     }
 }
+
+#[no_mangle]
+pub extern "C" fn uvs_media_probe(path: *const c_char) -> *mut c_char {
+    if path.is_null() {
+        return err_json("Null path in uvs_media_probe");
+    }
+
+    let res = catch_unwind(|| {
+        let p_str = unsafe { CStr::from_ptr(path).to_str().unwrap_or("") };
+        let output = std::process::Command::new("ffprobe")
+            .args([
+                "-v",
+                "quiet",
+                "-print_format",
+                "json",
+                "-show_format",
+                "-show_streams",
+                p_str,
+            ])
+            .output();
+
+        match output {
+            Ok(out) if out.status.success() => {
+                String::from_utf8_lossy(&out.stdout).to_string()
+            }
+            Ok(out) => {
+                let err = String::from_utf8_lossy(&out.stderr);
+                format!("{{\"error\": \"ffprobe failed: {}\"}}", err)
+            }
+            Err(e) => format!("{{\"error\": \"Failed to spawn ffprobe: {}\"}}", e),
+        }
+    });
+
+    match res {
+        Ok(json) => to_c_string(json),
+        Err(_) => err_json("Panic in uvs_media_probe"),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_decode_frame(
+    media_path: *const c_char,
+    time_s: f64,
+    out_png_path: *const c_char,
+) -> *mut c_char {
+    if media_path.is_null() || out_png_path.is_null() {
+        return err_json("Null argument to uvs_decode_frame");
+    }
+
+    let res = catch_unwind(|| {
+        let in_str = unsafe { CStr::from_ptr(media_path).to_str().unwrap_or("") };
+        let out_str = unsafe { CStr::from_ptr(out_png_path).to_str().unwrap_or("") };
+
+        let time_str = format!("{:.3}", time_s.max(0.0));
+        let output = std::process::Command::new("ffmpeg")
+            .args([
+                "-y",
+                "-ss",
+                &time_str,
+                "-i",
+                in_str,
+                "-vframes",
+                "1",
+                "-q:v",
+                "2",
+                out_str,
+            ])
+            .output();
+
+        match output {
+            Ok(out) if out.status.success() => {
+                format!(
+                    "{{\"status\": \"ok\", \"path\": \"{}\"}}",
+                    out_str.replace('\\', "/")
+                )
+            }
+            Ok(out) => {
+                let err = String::from_utf8_lossy(&out.stderr);
+                format!("{{\"error\": \"ffmpeg frame decode failed: {}\"}}", err)
+            }
+            Err(e) => format!("{{\"error\": \"Failed to spawn ffmpeg: {}\"}}", e),
+        }
+    });
+
+    match res {
+        Ok(json) => to_c_string(json),
+        Err(_) => err_json("Panic in uvs_decode_frame"),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn uvs_proxy_generate(
+    source_path: *const c_char,
+    target_path: *const c_char,
+    target_height: c_int,
+) -> *mut c_char {
+    if source_path.is_null() || target_path.is_null() {
+        return err_json("Null argument to uvs_proxy_generate");
+    }
+
+    let res = catch_unwind(|| {
+        let src = unsafe { CStr::from_ptr(source_path).to_str().unwrap_or("") };
+        let tgt = unsafe { CStr::from_ptr(target_path).to_str().unwrap_or("") };
+        let h = if target_height > 0 {
+            target_height
+        } else {
+            720
+        };
+
+        let scale_filter = format!("scale=-2:{}", h);
+        let output = std::process::Command::new("ffmpeg")
+            .args([
+                "-y",
+                "-i",
+                src,
+                "-vf",
+                &scale_filter,
+                "-c:v",
+                "libx264",
+                "-preset",
+                "ultrafast",
+                "-crf",
+                "26",
+                "-c:a",
+                "copy",
+                tgt,
+            ])
+            .output();
+
+        match output {
+            Ok(out) if out.status.success() => {
+                format!(
+                    "{{\"status\": \"ok\", \"proxy_path\": \"{}\"}}",
+                    tgt.replace('\\', "/")
+                )
+            }
+            Ok(out) => {
+                let err = String::from_utf8_lossy(&out.stderr);
+                format!("{{\"error\": \"proxy generation failed: {}\"}}", err)
+            }
+            Err(e) => format!("{{\"error\": \"Failed to spawn ffmpeg: {}\"}}", e),
+        }
+    });
+
+    match res {
+        Ok(json) => to_c_string(json),
+        Err(_) => err_json("Panic in uvs_proxy_generate"),
+    }
+}
+

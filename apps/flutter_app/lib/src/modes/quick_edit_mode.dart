@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/timecode.dart';
 import '../services/render_service.dart';
+import '../widgets/video_monitor_surface.dart';
 
 class QuickEditModeView extends StatefulWidget {
   const QuickEditModeView({super.key});
@@ -101,15 +102,11 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Video Canvas
-                      Row(
-                        children: [
-                          Expanded(child: Container(color: const Color(0xFFC0C0C0))),
-                          Expanded(child: Container(color: const Color(0xFFC0C000))),
-                          Expanded(child: Container(color: const Color(0xFF00C0C0))),
-                          Expanded(child: Container(color: const Color(0xFF00C000))),
-                          Expanded(child: Container(color: const Color(0xFFC000C0))),
-                        ],
+                      Positioned.fill(
+                        child: VideoMonitorSurface(
+                          currentTime: _trimStart,
+                          duration: 4.0,
+                        ),
                       ),
                       // Filter Tint Overlay
                       Container(color: _getFilterTint()),

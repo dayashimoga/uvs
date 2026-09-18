@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../services/project_service.dart';
+import '../widgets/video_monitor_surface.dart';
 
 class TileFeed {
   final int id;
@@ -181,7 +182,15 @@ class _MultiViewModeViewState extends State<MultiViewModeView> {
       ),
       child: Stack(
         children: [
-          // Video background simulation or Error State
+          if (!feed.hasError)
+            Positioned.fill(
+              child: VideoMonitorSurface(
+                mediaPath: 'feed_${feed.id}.mp4',
+                currentTime: (feed.id - 1) * 2.0,
+                duration: 60.0,
+                isPlaying: feed.isPlaying,
+              ),
+            ),
           Center(
             child: feed.hasError
                 ? Column(
@@ -210,14 +219,7 @@ class _MultiViewModeViewState extends State<MultiViewModeView> {
                       ),
                     ],
                   )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.videocam, size: 40, color: StudioTheme.textMuted.withOpacity(0.5)),
-                      const SizedBox(height: 8),
-                      Text(feed.title, style: const TextStyle(color: StudioTheme.textSecondary, fontSize: 12)),
-                    ],
-                  ),
+                : const SizedBox.shrink(),
           ),
 
           // Top Badge: Title, Live Indicator, and Simulate Drop

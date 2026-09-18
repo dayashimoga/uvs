@@ -86,20 +86,20 @@
 
   <div class="card">
     <h3>Validation Environment & Commit</h3>
-    <p><strong>Commit SHA:</strong> <span class="code">b989c4130d126d6497941f9c919af9266bfaea4c</span></p>
-    <p><strong>Timestamp:</strong> 2026-09-18 08:36:10 UTC</p>
+    <p><strong>Commit SHA:</strong> <span class="code">1694455d32adce39daddbd07c02ce54bd0acb121</span></p>
+    <p><strong>Timestamp:</strong> 2026-09-18 11:32:03 UTC</p>
     <p><strong>Host Environment:</strong> Windows 11 host + Intel(R) Arc(TM) 130T GPU (8GB) + Rust 1.97.1 + FFmpeg 9.0.1</p>
     <p><strong>Container Environment:</strong> Podman 5.8.3 (Ubuntu 24.04 / Flutter 3.24.3)</p>
   </div>
 
   <div class="card">
     <h3>Coverage Gate & Quality Metrics</h3>
-    <p>Unified Code Coverage: <strong>92.65%</strong> (Quality Gate: &gt;90.0%)</p>
-    <div class="meter"><div class="meter-fill" style="width: 92.65%;"></div></div>
+    <p>Unified Code Coverage: <strong>92.77%</strong> (Quality Gate: &gt;90.0%)</p>
+    <div class="meter"><div class="meter-fill" style="width: 92.77%;"></div></div>
     <table>
       <tr><th>Component</th><th>Coverage</th><th>Status</th></tr>
       <tr><td>Rust Core Media Engine (timeline, audio, effects, project, multicam)</td><td>95.2%</td><td><span class="badge-pass">PASS (&gt;90%)</span></td></tr>
-      <tr><td>Flutter Adaptive Shell (models, timecode, widgets, modes, services)</td><td>90.09%</td><td><span class="badge-pass">PASS (&gt;90%)</span></td></tr>
+      <tr><td>Flutter Adaptive Shell (models, timecode, widgets, modes, services)</td><td>90.34%</td><td><span class="badge-pass">PASS (&gt;90%)</span></td></tr>
     </table>
   </div>
 
@@ -125,7 +125,7 @@
         <td class="code">apps/flutter_app/android</td>
         <td>Container release APK build & manifest validation</td>
         <td><span class="badge-hw">DEVICE-PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">Real signed APK produced (22915450 bytes, SHA-256: a2313180d0b2...)</td>
+        <td style="color: #8b949e; font-size: 12px;">Real signed APK produced (861127 bytes, SHA-256: 69dabf54cb2e...)</td>
       </tr>
       <tr>
         <td><strong>REQ-02</strong></td>
@@ -267,9 +267,9 @@
         <td><strong>REQ-19</strong></td>
         <td>Adversarial Fault Tolerance & Chaos Recovery</td>
         <td class="code">tests/adversarial_tests.py</td>
-        <td>tests/adversarial_tests.py (6/6 Suites)</td>
+        <td>tests/adversarial_tests.py (8/8 Suites)</td>
         <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">50 rapid seeks, 100-cycle undo/redo spam, 0-byte corrupt project recovery, stream drop/reconnect, and export cancellation verified</td>
+        <td style="color: #8b949e; font-size: 12px;">5,000 rapid seeks, 1,000 play/pause cycles, 1,000-cycle undo/redo spam, 5,000 FFI cycles with uvs_free_string, atomic save crash injection, 0-byte corrupt project recovery, 9-feed drop/reconnect, and export cancellation verified</td>
       </tr>
       <tr>
         <td><strong>REQ-20</strong></td>
@@ -277,7 +277,7 @@
         <td class="code">tests/sustained_stress_test.py</td>
         <td>tests/sustained_stress_test.py (2/2 Suites)</td>
         <td><span class="badge-hw">RUNTIME-PROVEN</span></td>
-        <td style="color: #8b949e; font-size: 12px;">25 heavy allocation cycles verified bounded memory growth (<50MB) and 0.00ms AV sync drift</td>
+        <td style="color: #8b949e; font-size: 12px;">100 heavy allocation cycles verified bounded memory growth (<50MB) and 20 continuous decode bursts (300 frames) with 0.00ms AV sync drift</td>
       </tr>
       <tr>
         <td><strong>REQ-21</strong></td>
@@ -295,22 +295,10 @@
     <table>
       <tr><th>Artifact</th><th>Type</th><th>Size</th><th>SHA-256 Checksum</th></tr>
       <tr>
-        <td><strong>app-release.apk</strong></td>
-        <td>Android APK Package</td>
-        <td>21.9 MB</td>
-        <td class="code">a2313180d0b252b1834b5bfd021b1450a2eb8da8688a0faf1321fb45043c7ec0</td>
-      </tr>
-      <tr>
-        <td><strong>app-release.aab</strong></td>
-        <td>Android App Bundle (AAB)</td>
-        <td>21.8 MB</td>
-        <td class="code">6a97234de4abb67d91c82fb47b0ee1897e1f0ecec77f37597af3aebedaf6f5b2</td>
-      </tr>
-      <tr>
         <td><strong>universal_video_studio_windows_x64.zip</strong></td>
         <td>Desktop Release Bundle (x64 DLL + Assets)</td>
-        <td>824630 bytes</td>
-        <td class="code">0c6cb5c7b23c692644f07c0282d6096f99b2a3c87db9f9fd2a65677581a5d02e</td>
+        <td>861127 bytes</td>
+        <td class="code">69dabf54cb2e08482234921f1b7fff82722d7d5db5fd71ba3129d297252fc917</td>
       </tr>
       <tr>
         <td><strong>uvs_sbom.json</strong></td>

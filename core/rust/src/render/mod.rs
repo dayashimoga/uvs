@@ -30,14 +30,35 @@ impl HardwareCapabilities {
     pub fn detect() -> Self {
         #[cfg(target_os = "windows")]
         {
-            Self {
-                primary_vendor: HardwareVendor::NoneCpuOnly,
-                supports_h264_hw: true,
-                supports_hevc_hw: true,
-                supports_av1_hw: false,
-                recommended_h264_encoder: "libx264".into(),
-                recommended_hevc_encoder: "libx265".into(),
-                classification: "PROVEN".into(),
+            let has_qsv = std::process::Command::new("ffmpeg")
+                .args(["-hide_banner", "-encoders"])
+                .output()
+                .map(|out| {
+                    let text = String::from_utf8_lossy(&out.stdout);
+                    text.contains("h264_qsv")
+                })
+                .unwrap_or(false);
+
+            if has_qsv {
+                Self {
+                    primary_vendor: HardwareVendor::IntelQsv,
+                    supports_h264_hw: true,
+                    supports_hevc_hw: true,
+                    supports_av1_hw: true,
+                    recommended_h264_encoder: "h264_qsv".into(),
+                    recommended_hevc_encoder: "hevc_qsv".into(),
+                    classification: "PROVEN".into(),
+                }
+            } else {
+                Self {
+                    primary_vendor: HardwareVendor::NoneCpuOnly,
+                    supports_h264_hw: true,
+                    supports_hevc_hw: true,
+                    supports_av1_hw: false,
+                    recommended_h264_encoder: "libx264".into(),
+                    recommended_hevc_encoder: "libx265".into(),
+                    classification: "PROVEN".into(),
+                }
             }
         }
         #[cfg(target_os = "macos")]

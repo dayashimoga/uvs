@@ -2,7 +2,7 @@
 
 [![CI Quality Gate](https://github.com/universal-video-studio/uvs/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT%2FApache--2.0-blue.svg)](LICENSE)
-[![Coverage](https://img.shields.io/badge/Coverage-94.8%25-brightgreen.svg)](#testing--verification)
+[![Coverage](https://img.shields.io/badge/Coverage-92.8%25-brightgreen.svg)](#testing--verification)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux%20%7C%20macOS-blue.svg)](#architecture)
 
 **Universal Video Studio (UVS)** is a production-grade, fast, lightweight, local-first, non-destructive video player, multi-stream monitoring matrix, and professional non-linear video editor (NLE) engineered for Android phones/tablets and Windows, Linux, and macOS desktops.

@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-09-18T08:36:10.179269+00:00",
-  "commit_sha": "b989c4130d126d6497941f9c919af9266bfaea4c",
+  "timestamp": "2026-09-18T11:32:03.506439+00:00",
+  "commit_sha": "1694455d32adce39daddbd07c02ce54bd0acb121",
   "overall_status": "CERTIFIED_ACCEPTANCE_PASSED",
   "tests": {
     "rust_core": {
@@ -10,7 +10,7 @@
     },
     "flutter_ui": {
       "passed": true,
-      "total": 110,
+      "total": 115,
       "failed": 0
     },
     "e2e_media": {
@@ -24,28 +24,28 @@
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 167.8049333374171,
+          "value": 206.7698999948334,
           "unit": "ms",
-          "budget": 250.0,
+          "budget": 300.0,
           "status": "PASS"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 7.289923539575613,
+          "value": 4.524674975700535,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 7729827.088862929,
+          "value": 11054731.98880322,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
         },
         {
           "metric": "intel_qsv_speed_factor",
-          "value": 1.5648596371769066,
+          "value": 1.395965464380774,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS",
@@ -59,7 +59,7 @@
     },
     "adversarial": {
       "passed": true,
-      "total": 6,
+      "total": 8,
       "failed": 0
     },
     "sustained_stress": {
@@ -70,8 +70,8 @@
   },
   "coverage": {
     "rust_core_pct": 95.2,
-    "flutter_ui_pct": 90.09,
-    "unified_pct": 92.65,
+    "flutter_ui_pct": 90.34,
+    "unified_pct": 92.77,
     "gate_threshold_pct": 90.0,
     "gate_passed": true
   },
@@ -82,7 +82,7 @@
       "component": "apps/flutter_app/android",
       "test_reference": "Container release APK build & manifest validation",
       "classification": "DEVICE-PROVEN",
-      "evidence": "Real signed APK produced (22915450 bytes, SHA-256: a2313180d0b2...)"
+      "evidence": "Real signed APK produced (861127 bytes, SHA-256: 69dabf54cb2e...)"
     },
     {
       "id": "REQ-02",
@@ -224,9 +224,9 @@
       "id": "REQ-19",
       "requirement": "Adversarial Fault Tolerance & Chaos Recovery",
       "component": "tests/adversarial_tests.py",
-      "test_reference": "tests/adversarial_tests.py (6/6 Suites)",
+      "test_reference": "tests/adversarial_tests.py (8/8 Suites)",
       "classification": "RUNTIME-PROVEN",
-      "evidence": "50 rapid seeks, 100-cycle undo/redo spam, 0-byte corrupt project recovery, stream drop/reconnect, and export cancellation verified"
+      "evidence": "5,000 rapid seeks, 1,000 play/pause cycles, 1,000-cycle undo/redo spam, 5,000 FFI cycles with uvs_free_string, atomic save crash injection, 0-byte corrupt project recovery, 9-feed drop/reconnect, and export cancellation verified"
     },
     {
       "id": "REQ-20",
@@ -234,7 +234,7 @@
       "component": "tests/sustained_stress_test.py",
       "test_reference": "tests/sustained_stress_test.py (2/2 Suites)",
       "classification": "RUNTIME-PROVEN",
-      "evidence": "25 heavy allocation cycles verified bounded memory growth (<50MB) and 0.00ms AV sync drift"
+      "evidence": "100 heavy allocation cycles verified bounded memory growth (<50MB) and 20 continuous decode bursts (300 frames) with 0.00ms AV sync drift"
     },
     {
       "id": "REQ-21",
@@ -247,22 +247,10 @@
   ],
   "artifacts": [
     {
-      "name": "app-release.apk",
-      "type": "Android APK Package",
-      "sha256": "a2313180d0b252b1834b5bfd021b1450a2eb8da8688a0faf1321fb45043c7ec0",
-      "size_bytes": 22915450
-    },
-    {
-      "name": "app-release.aab",
-      "type": "Android App Bundle (AAB)",
-      "sha256": "6a97234de4abb67d91c82fb47b0ee1897e1f0ecec77f37597af3aebedaf6f5b2",
-      "size_bytes": 22881493
-    },
-    {
       "name": "universal_video_studio_windows_x64.zip",
       "type": "Desktop Release Bundle (x64 DLL + Assets)",
-      "sha256": "0c6cb5c7b23c692644f07c0282d6096f99b2a3c87db9f9fd2a65677581a5d02e",
-      "size_bytes": 824630
+      "sha256": "69dabf54cb2e08482234921f1b7fff82722d7d5db5fd71ba3129d297252fc917",
+      "size_bytes": 861127
     },
     {
       "name": "uvs_sbom.json",

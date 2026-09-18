@@ -56,7 +56,7 @@ def load_native_lib():
 LIB = load_native_lib()
 
 def test_sustained_pipeline_stress():
-    print("=== [Stress 1] Sustained Timeline & DSP Processing Cycles (25 Cycles) ===")
+    print("=== [Stress 1] Sustained Timeline & DSP Processing Cycles (100 Cycles) ===")
     assert LIB is not None, "Native uvs_core required for memory stress testing"
 
     initial_mem = get_process_memory_mb()
@@ -67,7 +67,7 @@ def test_sustained_pipeline_stress():
     sample_rate = 48000
     samples = (ctypes.c_float * sample_rate)(*[0.1 * (i % 50 - 25) / 25.0 for i in range(sample_rate)])
 
-    for cycle in range(25):
+    for cycle in range(100):
         t0 = time.perf_counter()
         
         # 1. Create project
@@ -98,12 +98,12 @@ def test_sustained_pipeline_stress():
     print(f"Final Process Working Set Memory: {final_mem:.2f} MB (Delta: {mem_delta:+.2f} MB)")
     print(f"Average Cycle Latency: {avg_cycle_ms:.2f} ms")
 
-    # Target budget: memory growth < 50MB across 25 heavy allocation/deallocation cycles
+    # Target budget: memory growth < 50MB across 100 heavy allocation/deallocation cycles
     assert mem_delta < 50.0, f"Excessive memory growth: {mem_delta:.2f} MB exceeds 50MB budget"
     print("[PASS] Sustained timeline & DSP processing verified zero unbounded memory growth.")
     return {
         "status": "PASS",
-        "cycles": 25,
+        "cycles": 100,
         "initial_mem_mb": initial_mem,
         "final_mem_mb": final_mem,
         "mem_delta_mb": mem_delta,
@@ -111,12 +111,12 @@ def test_sustained_pipeline_stress():
     }
 
 def test_sustained_decode_and_av_drift():
-    print("=== [Stress 2] Sustained Video Decoding & AV Sync Drift Validation ===")
+    print("=== [Stress 2] Sustained Video Decoding & AV Sync Drift Validation (20 Bursts) ===")
     test_video = MEDIA_DIR / "test_smpte_1080p.mp4"
     assert test_video.exists(), f"Fixture missing: {test_video}"
 
-    # Perform continuous decode of frames across 10 sequential bursts
-    bursts = 10
+    # Perform continuous decode of frames across 20 sequential bursts
+    bursts = 20
     total_frames = 0
     t0 = time.perf_counter()
 

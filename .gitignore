@@ -2,6 +2,9 @@
 target/
 **/*.rs.bk
 Cargo.lock
+*.dll
+*.so
+*.dylib
 
 # Dart & Flutter
 .dart_tool/
