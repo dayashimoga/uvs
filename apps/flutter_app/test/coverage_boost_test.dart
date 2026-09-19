@@ -23,6 +23,7 @@ import 'package:universal_video_studio/src/widgets/video_monitor_surface.dart';
 import 'package:universal_video_studio/src/services/platform_file_picker.dart';
 import 'package:universal_video_studio/src/services/recent_media_service.dart';
 import 'package:universal_video_studio/src/widgets/media_bin_view.dart';
+import 'package:universal_video_studio/src/widgets/timeline_view.dart';
 import 'package:flutter/foundation.dart';
 
 void main() {
@@ -1209,7 +1210,8 @@ void main() {
     });
 
     test('RenderService real ffmpeg execution and MediaService probe', () async {
-      File testVideo = File('tests/output/cam_test.mp4');
+      final fixture = MediaService.resolveFixture('media/fixtures/test_smpte_1080p.mp4');
+      File testVideo = (fixture != null) ? File(fixture) : File('tests/output/cam_test.mp4');
       if (!testVideo.existsSync()) {
         testVideo = File('../../tests/output/cam_test.mp4');
       }
@@ -1379,6 +1381,7 @@ void main() {
         rec.reset(); // has screen and microphone
         cmd = rec.buildFfmpegCaptureCommand('out_mac.mp4');
         expect(cmd, contains('avfoundation'));
+        expect(rec.getCapabilityWarning(RecordingSource.systemAudio), contains('macOS'));
 
         rec.toggleSource(RecordingSource.screen);
         rec.toggleSource(RecordingSource.microphone);
@@ -1390,6 +1393,11 @@ void main() {
         rec.reset();
         cmd = rec.buildFfmpegCaptureCommand('out_android.mp4');
         expect(cmd, contains('lavfi'));
+        expect(rec.getCapabilityWarning(RecordingSource.systemAudio), contains('Android'));
+
+        // 5. iOS platform
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        expect(rec.isSourceSupported(RecordingSource.systemAudio), isFalse);
       } finally {
         debugDefaultTargetPlatformOverride = null;
         rec.reset();
@@ -1670,9 +1678,31 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap individual angle assign button
-      final assignButtons = find.byIcon(Icons.file_upload_outlined);
+      PlatformFilePicker.mockPickedFiles = ['angle1.mp4'];
+      final assignButtons = find.byTooltip("Assign Video File to CAM 1");
       if (assignButtons.evaluate().isNotEmpty) {
         await tester.tap(assignButtons.first);
+        await tester.pumpAndSettle();
+      }
+
+      // Auto-Sync Angles
+      final autoSyncBtn = find.text("Auto-Sync Angles");
+      if (autoSyncBtn.evaluate().isNotEmpty) {
+        await tester.tap(autoSyncBtn);
+        await tester.pumpAndSettle();
+      }
+
+      // Switch angle cut by tapping CAM 2
+      final cam2 = find.text("CAM 2");
+      if (cam2.evaluate().isNotEmpty) {
+        await tester.tap(cam2);
+        await tester.pumpAndSettle();
+      }
+
+      // Insert Cuts to Timeline
+      final anyInsert = find.textContaining("Insert Cuts to Timeline");
+      if (anyInsert.evaluate().isNotEmpty) {
+        await tester.tap(anyInsert.first);
         await tester.pumpAndSettle();
       }
 
@@ -1680,7 +1710,7 @@ void main() {
     });
 
     testWidgets('PlayerModeView open media file dialog and playback', (tester) async {
-      final fixturePath = MediaService.resolveFixture('media/fixtures/sample_1080p.mp4') ??
+      final fixturePath = MediaService.resolveFixture('media/fixtures/test_smpte_1080p.mp4') ??
           MediaService.resolveFixture('sample_1080p.mp4') ??
           'dummy.mp4';
       PlatformFilePicker.mockPickedFiles = [fixturePath];
@@ -1708,15 +1738,20 @@ void main() {
       if (playBtn.evaluate().isNotEmpty) {
         await tester.tap(playBtn);
         await tester.pump(const Duration(milliseconds: 100));
+        final pauseBtn = find.byIcon(Icons.pause_circle_filled);
+        if (pauseBtn.evaluate().isNotEmpty) {
+          await tester.tap(pauseBtn);
+          await tester.pumpAndSettle();
+        }
       }
 
       // Step forward & backward
-      final nextBtn = find.byIcon(Icons.skip_next);
+      final nextBtn = find.byTooltip("Next Frame (Right Arrow)");
       if (nextBtn.evaluate().isNotEmpty) {
         await tester.tap(nextBtn, warnIfMissed: false);
         await tester.pumpAndSettle();
       }
-      final prevBtn = find.byIcon(Icons.skip_previous);
+      final prevBtn = find.byTooltip("Previous Frame (Left Arrow)");
       if (prevBtn.evaluate().isNotEmpty) {
         await tester.tap(prevBtn, warnIfMissed: false);
         await tester.pumpAndSettle();
@@ -1733,12 +1768,53 @@ void main() {
         await tester.tap(setBBtn, warnIfMissed: false);
         await tester.pumpAndSettle();
       }
+      final clearAB = find.byTooltip("Clear A-B Repeat");
+      if (clearAB.evaluate().isNotEmpty) {
+        await tester.tap(clearAB, warnIfMissed: false);
+        await tester.pumpAndSettle();
+      }
 
-      // Snapshot
-      final snapBtn = find.byIcon(Icons.camera_alt_outlined);
+      // Snapshot capture
+      final snapBtn = find.byTooltip("Capture Snapshot");
       if (snapBtn.evaluate().isNotEmpty) {
         await tester.tap(snapBtn);
         await tester.pumpAndSettle();
+      }
+
+      // Subtitles selection
+      final subBtn = find.byTooltip("Subtitles");
+      if (subBtn.evaluate().isNotEmpty) {
+        await tester.tap(subBtn, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        final ccOpt = find.text("English [CC]");
+        if (ccOpt.evaluate().isNotEmpty) {
+          await tester.tap(ccOpt.last, warnIfMissed: false);
+          await tester.pumpAndSettle();
+        }
+      }
+
+      // Audio sync calibration dialog
+      final audioSyncBtn = find.byTooltip("Audio Sync");
+      if (audioSyncBtn.evaluate().isNotEmpty) {
+        await tester.tap(audioSyncBtn, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        final closeBtn = find.text("Close");
+        if (closeBtn.evaluate().isNotEmpty) {
+          await tester.tap(closeBtn, warnIfMissed: false);
+          await tester.pumpAndSettle();
+        }
+      }
+
+      // Playback speed dropdown
+      final speedDropdown = find.byType(DropdownButton<double>);
+      if (speedDropdown.evaluate().isNotEmpty) {
+        await tester.tap(speedDropdown, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        final speed2x = find.text("2.0x");
+        if (speed2x.evaluate().isNotEmpty) {
+          await tester.tap(speed2x.last, warnIfMissed: false);
+          await tester.pumpAndSettle();
+        }
       }
 
       PlatformFilePicker.mockPickedFiles = null;
@@ -1759,6 +1835,90 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("SMPTE HD Master"), findsWidgets);
 
+      // Add clip to timeline via Grid More popup
+      final moreBtn = find.byIcon(Icons.more_vert);
+      if (moreBtn.evaluate().isNotEmpty) {
+        await tester.tap(moreBtn.first);
+        await tester.pumpAndSettle();
+        final addOpt = find.text("Add to Timeline");
+        if (addOpt.evaluate().isNotEmpty) {
+          await tester.tap(addOpt);
+          await tester.pumpAndSettle();
+        }
+      }
+
+      // Play transport briefly so playhead advances
+      final playBtn = find.byIcon(Icons.play_arrow);
+      if (playBtn.evaluate().isNotEmpty) {
+        await tester.tap(playBtn);
+        await tester.pump(const Duration(milliseconds: 200));
+        final pauseBtn = find.byIcon(Icons.pause);
+        if (pauseBtn.evaluate().isNotEmpty) {
+          await tester.tap(pauseBtn);
+          await tester.pumpAndSettle();
+        }
+      }
+
+      // Split at playhead
+      final splitBtn = find.byTooltip("Split at Playhead (S)");
+      if (splitBtn.evaluate().isNotEmpty) {
+        await tester.tap(splitBtn);
+        await tester.pumpAndSettle();
+      }
+
+      // Ripple delete selected clip
+      final rippleBtn = find.byTooltip("Ripple Delete Selected (Del)");
+      if (rippleBtn.evaluate().isNotEmpty) {
+        await tester.tap(rippleBtn);
+        await tester.pumpAndSettle();
+      }
+
+      // Switch to Media Bin, add clip again so selectedClip is active
+      await tester.tap(find.text("Media"));
+      await tester.pumpAndSettle();
+      if (moreBtn.evaluate().isNotEmpty) {
+        await tester.tap(moreBtn.first);
+        await tester.pumpAndSettle();
+        final addOpt = find.text("Add to Timeline");
+        if (addOpt.evaluate().isNotEmpty) {
+          await tester.tap(addOpt);
+          await tester.pumpAndSettle();
+        }
+      }
+
+      // Switch to Tab 1: Inspector
+      await tester.tap(find.byIcon(Icons.tune).first);
+      await tester.pumpAndSettle();
+
+      final addKeyframe = find.text("Add Keyframe");
+      if (addKeyframe.evaluate().isNotEmpty) {
+        await tester.tap(addKeyframe);
+        await tester.pumpAndSettle();
+      }
+      final crossDissolve = find.text("Cross Dissolve");
+      if (crossDissolve.evaluate().isNotEmpty) {
+        await tester.tap(crossDissolve);
+        await tester.pumpAndSettle();
+      }
+      final slipBtn = find.text("Slip -0.5s");
+      if (slipBtn.evaluate().isNotEmpty) {
+        await tester.tap(slipBtn);
+        await tester.pumpAndSettle();
+      }
+      final slideBtn = find.text("Slide +0.5s");
+      if (slideBtn.evaluate().isNotEmpty) {
+        await tester.tap(slideBtn);
+        await tester.pumpAndSettle();
+      }
+
+      // Switch to Tab 2: Color
+      await tester.tap(find.byIcon(Icons.palette).first);
+      await tester.pumpAndSettle();
+
+      // Switch to Tab 3: Audio
+      await tester.tap(find.byIcon(Icons.equalizer).first);
+      await tester.pumpAndSettle();
+
       // Switch to Tab 4: Subtitles
       await tester.tap(find.byIcon(Icons.subtitles).first);
       await tester.pumpAndSettle();
@@ -1772,6 +1932,97 @@ void main() {
       await tester.tap(find.byIcon(Icons.queue).first);
       await tester.pumpAndSettle();
       expect(find.text("Render & Export Queue"), findsOneWidget);
+
+      // Export Video dialog
+      final exportBtn = find.text("Export Video");
+      if (exportBtn.evaluate().isNotEmpty) {
+        await tester.tap(exportBtn);
+        await tester.pumpAndSettle();
+
+        final startRenderBtn = find.text("Start Render");
+        if (startRenderBtn.evaluate().isNotEmpty) {
+          await tester.tap(startRenderBtn);
+          await tester.pumpAndSettle();
+        }
+      }
+
+      // Transport controls
+      final skipPrev = find.byIcon(Icons.skip_previous);
+      if (skipPrev.evaluate().isNotEmpty) {
+        await tester.tap(skipPrev.first);
+        await tester.pumpAndSettle();
+      }
+      final skipNext = find.byIcon(Icons.skip_next);
+      if (skipNext.evaluate().isNotEmpty) {
+        await tester.tap(skipNext.first);
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets('TimelineView interactive snapping, muting, seeking and clip interactions', (tester) async {
+      final proj = ProjectModel.createDefault();
+      final track = proj.tracks.first;
+      final clip = track.clips.isNotEmpty
+          ? track.clips.first
+          : ClipModel(id: 'c1', name: 'Clip 1', mediaPath: 'path.mp4', startTime: 0.0, duration: 4.0);
+      ClipModel? selectedClip = clip;
+      double playheadTime = 1.0;
+      bool splitCalled = false;
+      bool rippleCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 400,
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return TimelineView(
+                    project: proj,
+                    playheadTime: playheadTime,
+                    selectedClip: selectedClip,
+                    onPlayheadSeek: (t) => setState(() => playheadTime = t),
+                    onClipSelected: (c) => setState(() => selectedClip = c),
+                    onSplitAtPlayhead: () => splitCalled = true,
+                    onRippleDeleteSelected: () => rippleCalled = true,
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Snap toggle
+      await tester.tap(find.text("Snap"));
+      await tester.pumpAndSettle();
+
+      // Split button
+      await tester.tap(find.byTooltip("Split at Playhead (S)"));
+      await tester.pumpAndSettle();
+      expect(splitCalled, isTrue);
+
+      // Ripple delete button
+      await tester.tap(find.byTooltip("Ripple Delete Selected (Del)"));
+      await tester.pumpAndSettle();
+      expect(rippleCalled, isTrue);
+
+      // Track mute toggle
+      final volumeIcon = find.byIcon(Icons.volume_up);
+      if (volumeIcon.evaluate().isNotEmpty) {
+        await tester.tap(volumeIcon.first);
+        await tester.pumpAndSettle();
+      }
+
+      // Seek on Time Ruler
+      final ruler = find.byType(CustomPaint);
+      if (ruler.evaluate().isNotEmpty) {
+        await tester.tap(ruler.first);
+        await tester.pumpAndSettle();
+      }
     });
 
     test('PlatformFilePicker native dialog runners for all platforms', () async {
@@ -1962,6 +2213,7 @@ void main() {
       final tempDir = Directory.systemTemp.createTempSync('bin_test_');
       final f1 = File('${tempDir.path}/sample_a.mp4')..writeAsStringSync('dummy video');
       final f2 = File('${tempDir.path}/sample_b.wav')..writeAsStringSync('dummy audio');
+      File('${tempDir.path}/sample_c.mp4').writeAsStringSync('dummy video c');
 
       addTearDown(() {
         PlatformFilePicker.mockPickedFiles = null;
@@ -2104,6 +2356,7 @@ void main() {
       expect(importFolderBtn, findsOneWidget);
       await tester.tap(importFolderBtn);
       await tester.pumpAndSettle();
+      expect(items.any((it) => it.name == 'sample_c.mp4'), isTrue);
     });
 
     testWidgets('MediaBinView empty state import media button', (tester) async {
