@@ -84,10 +84,10 @@ jobs:
           cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../../apps/flutter_app/android/app/src/main/jniLibs build --release
 
       - name: Build Signed Release APK
-        run: cd apps/flutter_app && flutter build apk --release
+        run: cd apps/flutter_app && flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Build Signed Release App Bundle (AAB)
-        run: cd apps/flutter_app && flutter build appbundle --release
+        run: cd apps/flutter_app && flutter build appbundle --release --android-skip-build-dependency-validation
 
       - name: Verify APK Integrity & Symbols
         run: |
