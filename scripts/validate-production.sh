@@ -15,6 +15,7 @@ echo -e "\n>>> [0/11] Invalidating stale certification and release artifacts..."
 rm -f "${ROOT_DIR}/acceptance.json" "${ROOT_DIR}/acceptance.html"
 rm -f "${ROOT_DIR}/dist/universal_video_studio_windows_x64.zip"
 rm -f "${ROOT_DIR}/dist/universal_video_studio_release.zip"
+rm -f "${ROOT_DIR}/dist/UVS-Windows-x64-Portable.zip"
 echo "[OK] Clean slate confirmed."
 
 # 1. Rust Code Formatting & Clippy Linter

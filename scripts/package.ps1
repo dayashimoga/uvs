@@ -17,7 +17,7 @@ $winBuildCandidates = @(
 
 $winReleaseDir = $null
 foreach ($cand in $winBuildCandidates) {
-    if ((Test-Path "$cand\universal_video_studio.exe") -or (Test-Path "$cand\uvs.exe")) {
+    if ((Test-Path "$cand\universal_video_studio.exe") -or (Test-Path "$cand\uvs.exe") -or (Test-Path "$cand\Universal Video Studio.exe")) {
         $winReleaseDir = $cand
         break
     }
@@ -40,7 +40,7 @@ if (-not $winReleaseDir) {
     }
 
     foreach ($cand in $winBuildCandidates) {
-        if ((Test-Path "$cand\universal_video_studio.exe") -or (Test-Path "$cand\uvs.exe")) {
+        if ((Test-Path "$cand\universal_video_studio.exe") -or (Test-Path "$cand\uvs.exe") -or (Test-Path "$cand\Universal Video Studio.exe")) {
             $winReleaseDir = $cand
             break
         }
@@ -48,29 +48,36 @@ if (-not $winReleaseDir) {
 }
 
 if (-not $winReleaseDir) {
-    Write-Host "`n[FAIL / HARDWARE-REQUIRED] Flutter Windows Release executable (universal_video_studio.exe or uvs.exe) was not found." -ForegroundColor Red
+    Write-Host "`n[FAIL / HARDWARE-REQUIRED] Flutter Windows Release executable was not found." -ForegroundColor Red
     Write-Host "Visual Studio C++ Desktop Development Workload is required to compile Windows desktop Flutter runners." -ForegroundColor Red
     Write-Host "This step compiles and packages automatically on GitHub Actions 'windows-latest' runner." -ForegroundColor Yellow
-    Write-Host "Refusing to create a fake, incomplete 841 KB ZIP." -ForegroundColor Red
+    Write-Host "Refusing to create a fake, incomplete archive." -ForegroundColor Red
     exit 1
 }
 
 Write-Host "[OK] Found Flutter Windows Release directory: $winReleaseDir" -ForegroundColor Green
 
-# 2. Stage complete package
-$tempWin = "$distDir\win_pkg_staging"
-if (Test-Path $tempWin) { Remove-Item -Recurse -Force $tempWin }
-New-Item -ItemType Directory -Force -Path $tempWin | Out-Null
+# 2. Stage complete package directory: UVS-Windows-x64-Portable
+$portableDir = "$distDir\UVS-Windows-x64-Portable"
+if (Test-Path $portableDir) { Remove-Item -Recurse -Force $portableDir }
+New-Item -ItemType Directory -Force -Path $portableDir | Out-Null
 
-Write-Host ">>> Staging canonical application files..." -ForegroundColor Cyan
-# Copy all Flutter release files
-Copy-Item -Recurse -Path "$winReleaseDir\*" -Destination $tempWin
+Write-Host ">>> Staging canonical application files into $portableDir..." -ForegroundColor Cyan
+Copy-Item -Recurse -Path "$winReleaseDir\*" -Destination $portableDir
 
-# Ensure both binary aliases exist in the package
-if ((Test-Path "$tempWin\universal_video_studio.exe") -and (-not (Test-Path "$tempWin\uvs.exe"))) {
-    Copy-Item "$tempWin\universal_video_studio.exe" -Destination "$tempWin\uvs.exe" -Force
-} elseif ((Test-Path "$tempWin\uvs.exe") -and (-not (Test-Path "$tempWin\universal_video_studio.exe"))) {
-    Copy-Item "$tempWin\uvs.exe" -Destination "$tempWin\universal_video_studio.exe" -Force
+# Canonicalize executable: ONE canonical user-facing executable "Universal Video Studio.exe"
+$canonExe = "$portableDir\Universal Video Studio.exe"
+if (Test-Path "$portableDir\universal_video_studio.exe") {
+    Move-Item "$portableDir\universal_video_studio.exe" -Destination $canonExe -Force
+} elseif (Test-Path "$portableDir\uvs.exe") {
+    Move-Item "$portableDir\uvs.exe" -Destination $canonExe -Force
+}
+# Remove confusing duplicate binaries if any
+if (Test-Path "$portableDir\uvs.exe") {
+    Remove-Item -Force "$portableDir\uvs.exe"
+}
+if (Test-Path "$portableDir\universal_video_studio.exe") {
+    Remove-Item -Force "$portableDir\universal_video_studio.exe"
 }
 
 # Copy Rust native engine
@@ -82,7 +89,7 @@ if (-not (Test-Path $rustDll)) {
     Pop-Location
 }
 if (Test-Path $rustDll) {
-    Copy-Item $rustDll -Destination $tempWin -Force
+    Copy-Item $rustDll -Destination $portableDir -Force
     Write-Host "[OK] Bundled uvs_core.dll into application root." -ForegroundColor Green
 } else {
     Write-Host "[FAIL] uvs_core.dll could not be found or built!" -ForegroundColor Red
@@ -91,27 +98,27 @@ if (Test-Path $rustDll) {
 
 # Copy SBOM, README, LICENSE
 if (Test-Path "$distDir\uvs_sbom.json") {
-    Copy-Item "$distDir\uvs_sbom.json" -Destination $tempWin
+    Copy-Item "$distDir\uvs_sbom.json" -Destination $portableDir
 }
 if (Test-Path "$root\README.md") {
-    Copy-Item "$root\README.md" -Destination $tempWin
+    Copy-Item "$root\README.md" -Destination $portableDir
 }
 if (Test-Path "$root\LICENSE") {
-    Copy-Item "$root\LICENSE" -Destination $tempWin
+    Copy-Item "$root\LICENSE" -Destination $portableDir
 }
 
 # 3. Audit required components
-if ((-not (Test-Path "$tempWin\uvs.exe")) -and (-not (Test-Path "$tempWin\universal_video_studio.exe"))) {
-    Write-Host "[FATAL] Mandatory release executable (universal_video_studio.exe / uvs.exe) is missing!" -ForegroundColor Red
-    Remove-Item -Recurse -Force $tempWin
+if (-not (Test-Path $canonExe)) {
+    Write-Host "[FATAL] Mandatory release executable (Universal Video Studio.exe) is missing!" -ForegroundColor Red
+    Remove-Item -Recurse -Force $portableDir
     exit 1
 }
 
 $mandatoryFiles = @("flutter_windows.dll", "uvs_core.dll", "data")
 foreach ($req in $mandatoryFiles) {
-    if (-not (Test-Path "$tempWin\$req")) {
+    if (-not (Test-Path "$portableDir\$req")) {
         Write-Host "[FATAL] Mandatory release component missing: $req" -ForegroundColor Red
-        Remove-Item -Recurse -Force $tempWin
+        Remove-Item -Recurse -Force $portableDir
         exit 1
     }
 }
@@ -120,30 +127,34 @@ Write-Host "[PASS] All mandatory runtime components verified." -ForegroundColor 
 # 4. Generate Manifest with File Sizes and SHA-256
 Write-Host ">>> Generating MANIFEST.txt with SHA-256 checksums..." -ForegroundColor Cyan
 $manifestLines = @(
-    "# Universal Video Studio - Windows x64 Release Package Manifest",
+    "# Universal Video Studio - Windows x64 Portable Release Package Manifest",
     "# Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')",
     "#"
 )
-Get-ChildItem -Recurse -File $tempWin | ForEach-Object {
-    $relPath = $_.FullName.Substring($tempWin.Length + 1)
+Get-ChildItem -Recurse -File $portableDir | ForEach-Object {
+    $relPath = $_.FullName.Substring($portableDir.Length + 1)
     $hash = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash.ToLower()
     $size = $_.Length
     $manifestLines += "$hash  $size bytes  $relPath"
 }
-$manifestLines | Out-File -FilePath "$tempWin\MANIFEST.txt" -Encoding utf8
+$manifestLines | Out-File -FilePath "$portableDir\MANIFEST.txt" -Encoding utf8
 
-# 5. Compress Archive
-$winDist = "$distDir\universal_video_studio_windows_x64.zip"
+# 5. Compress Archive for Release (UVS-Windows-x64-Portable.zip)
+$winDist = "$distDir\UVS-Windows-x64-Portable.zip"
 if (Test-Path $winDist) { Remove-Item -Force $winDist }
 Write-Host ">>> Compressing package to $winDist..." -ForegroundColor Cyan
-Compress-Archive -Path "$tempWin\*" -DestinationPath $winDist -Force
-Remove-Item -Recurse -Force $tempWin
+Compress-Archive -Path "$portableDir\*" -DestinationPath $winDist -Force
+
+# Also provide universal_video_studio_windows_x64.zip alias for backwards compatibility
+Copy-Item "$winDist" -Destination "$distDir\universal_video_studio_windows_x64.zip" -Force
+
+# Retain $portableDir directory intact so GitHub Actions can upload the bundle directory directly without nested ZIPs!
 
 # 6. Validate Archive Size
 $zipSize = (Get-Item $winDist).Length
 Write-Host "Created: $winDist ($([math]::Round($zipSize / 1MB, 2)) MB)" -ForegroundColor Green
 
-if ($zipSize -lt 10000000) { # Less than 10 MB is suspicious (fake archives were ~841 KB)
+if ($zipSize -lt 10000000) {
     Write-Host "[FATAL] Archive size is suspicious ($zipSize bytes < 10 MB). Packaging rejected!" -ForegroundColor Red
     exit 1
 }

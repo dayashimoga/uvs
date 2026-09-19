@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../core/timecode.dart';
+import '../services/media_service.dart';
+import '../services/platform_file_picker.dart';
 import '../services/render_service.dart';
 import '../widgets/video_monitor_surface.dart';
 
@@ -12,13 +14,16 @@ class QuickEditModeView extends StatefulWidget {
 }
 
 class _QuickEditModeViewState extends State<QuickEditModeView> {
+  String? _mediaPath;
+  MediaProbeResult? _probeInfo;
   double _trimStart = 0.5;
   double _trimEnd = 3.5;
-  final double _duration = 4.0;
+  double _duration = 4.0;
 
   int _rotation = 0; // 0, 90, 180, 270
   String _aspectRatio = '16:9'; // '16:9', '9:16', '1:1', '4:3'
   double _speed = 1.0;
+  double _volume = 1.0;
   String _selectedFilter = 'Normal';
   final TextEditingController _subtitleCtrl = TextEditingController(text: "Quick Title Overlay");
 
@@ -29,6 +34,52 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
     'B&W Contrast',
     'Vibrant Pop',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final testFixture = MediaService.resolveFixture('media/fixtures/test_smpte_1080p.mp4');
+    if (testFixture != null) {
+      _loadMedia(testFixture);
+    }
+  }
+
+  void _loadMedia(String path) {
+    try {
+      final probe = MediaService.instance.validateAndIngestMedia(path);
+      setState(() {
+        _mediaPath = probe.path;
+        _probeInfo = probe;
+        _duration = probe.durationSeconds > 0 ? probe.durationSeconds : 4.0;
+        _trimStart = 0.0;
+        _trimEnd = _duration;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Could not open media: $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _openMediaFile() async {
+    try {
+      final picked = await PlatformFilePicker.pickMediaFiles(
+        allowMultiple: false,
+        dialogTitle: "Open Media for Quick Edit",
+      );
+      if (picked.isNotEmpty) {
+        _loadMedia(picked.first);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error opening file: $e")),
+        );
+      }
+    }
+  }
 
   Color _getFilterTint() {
     switch (_selectedFilter) {
@@ -48,40 +99,77 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 700;
-        final preview = _buildPreview();
-        final inspector = _buildInspector();
-
-        if (isCompact) {
-          return Column(
-            children: [
-              Expanded(
-                flex: 5,
-                child: preview,
-              ),
-              Expanded(
-                flex: 5,
-                child: inspector,
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(
-              flex: 6,
-              child: preview,
+    return Column(
+      children: [
+        // Quick Edit Toolbar
+        Container(
+          height: 44,
+          color: StudioTheme.surface,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                const Icon(Icons.auto_fix_high, size: 18, color: StudioTheme.accentCyan),
+                const SizedBox(width: 8),
+                const Text("Quick Edit", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                if (_mediaPath != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: StudioTheme.surfaceElevated,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      "${_mediaPath!.replaceAll('\\', '/').split('/').last} (${_probeInfo?.resolutionString ?? '1080p'})",
+                      style: const TextStyle(fontSize: 11, color: StudioTheme.accentCyan),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.folder_open, size: 16),
+                  label: const Text("Open Media"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: StudioTheme.surfaceElevated,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  onPressed: _openMediaFile,
+                ),
+              ],
             ),
-            SizedBox(
-              width: 320,
-              child: inspector,
-            ),
-          ],
-        );
-      },
+          ),
+        ),
+
+        // Body
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 700;
+              final preview = _buildPreview();
+              final inspector = _buildInspector();
+
+              if (isCompact) {
+                return Column(
+                  children: [
+                    Expanded(flex: 5, child: preview),
+                    Expanded(flex: 5, child: inspector),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(flex: 6, child: preview),
+                  SizedBox(width: 320, child: inspector),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -104,8 +192,9 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
                     children: [
                       Positioned.fill(
                         child: VideoMonitorSurface(
+                          mediaPath: _mediaPath,
                           currentTime: _trimStart,
-                          duration: 4.0,
+                          duration: _duration,
                         ),
                       ),
                       // Filter Tint Overlay
@@ -154,9 +243,9 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
                 ),
               ),
               RangeSlider(
-                values: RangeValues(_trimStart, _trimEnd),
+                values: RangeValues(_trimStart.clamp(0.0, _duration), _trimEnd.clamp(0.0, _duration)),
                 min: 0.0,
-                max: _duration,
+                max: _duration > 0 ? _duration : 1.0,
                 activeColor: StudioTheme.accentCyan,
                 inactiveColor: StudioTheme.surfaceHighlight,
                 onChanged: (vals) {
@@ -182,7 +271,7 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
           const Text("Quick Adjustments", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const Divider(color: StudioTheme.border, height: 24),
 
-          // Aspect Ratio (for TikTok/Shorts/Reels)
+          // Aspect Ratio
           const Text("Aspect Ratio", style: TextStyle(color: StudioTheme.textSecondary, fontSize: 12)),
           const SizedBox(height: 6),
           Wrap(
@@ -227,6 +316,16 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
           ),
           const SizedBox(height: 8),
 
+          // Audio Volume
+          Text("Audio Level: ${(_volume * 100).round()}%", style: const TextStyle(color: StudioTheme.textSecondary, fontSize: 12)),
+          Slider(
+            min: 0.0,
+            max: 2.0,
+            value: _volume,
+            onChanged: (v) => setState(() => _volume = v),
+          ),
+          const SizedBox(height: 8),
+
           // Color Preset Filter
           const Text("Color Filter Look", style: TextStyle(color: StudioTheme.textSecondary, fontSize: 12)),
           const SizedBox(height: 6),
@@ -266,6 +365,7 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
               textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
             onPressed: () {
+              final inMedia = _mediaPath ?? 'media/fixtures/test_smpte_1080p.mp4';
               final outPath = "exports/quick_edit_${DateTime.now().millisecondsSinceEpoch}.mp4";
               RenderService.instance.queueRender(
                 name: "Quick Edit ($_aspectRatio, $_selectedFilter)",
@@ -283,7 +383,7 @@ class _QuickEditModeViewState extends State<QuickEditModeView> {
                     'audio_bitrate_kbps': 192,
                   }
                 },
-                inputPath: 'sample_media.mp4',
+                inputPath: inMedia,
               );
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

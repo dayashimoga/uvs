@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-09-18T14:59:15.111254+00:00",
-  "commit_sha": "05aacc34bbca67b3fd70ffc7b1fed72041d2c835",
+  "timestamp": "2026-09-19T06:55:57.022139+00:00",
+  "commit_sha": "5af73f5461425df2dea8c86e23381f7e29959390",
   "overall_status": "FAILED",
   "tests": {
     "rust_core": {
@@ -10,7 +10,7 @@
     },
     "flutter_ui": {
       "passed": true,
-      "total": 139,
+      "total": 152,
       "failed": 0
     },
     "real_pipelines": {
@@ -29,28 +29,28 @@
       "results": [
         {
           "metric": "seek_latency_ms",
-          "value": 365.0528599973768,
+          "value": 606.3749400200322,
           "unit": "ms",
           "budget": 300.0,
           "status": "FAIL"
         },
         {
           "metric": "transcode_speed_factor",
-          "value": 3.007394204948432,
+          "value": 2.266997051251201,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS"
         },
         {
           "metric": "timeline_math_ops_sec",
-          "value": 9615107.255141418,
+          "value": 5340254.309198404,
           "unit": "ops/sec",
           "budget": 500000.0,
           "status": "PASS"
         },
         {
           "metric": "intel_qsv_speed_factor",
-          "value": 1.0958626991437006,
+          "value": 0.8927352884794723,
           "unit": "x realtime",
           "budget": 1.5,
           "status": "PASS",
@@ -74,16 +74,16 @@
       "metrics": {
         "sustained_pipeline_rss_stabilization": {
           "status": "PASS",
-          "initial_rss_mb": 19.09765625,
+          "initial_rss_mb": 19.078125,
           "tier_rss": {
-            "100": 20.33203125,
-            "500": 20.33984375,
-            "1000": 20.33984375,
-            "5000": 20.35546875
+            "100": 20.52734375,
+            "500": 20.53125,
+            "1000": 20.53125,
+            "5000": 20.53125
           },
-          "total_delta_mb": 1.2578125,
-          "growth_rate_per_cycle_mb": 3.90625e-06,
-          "cycles_per_sec": 2386.5939481225178
+          "total_delta_mb": 1.453125,
+          "growth_rate_per_cycle_mb": 0.0,
+          "cycles_per_sec": 1526.0651935174728
         },
         "sustained_decode_and_continuous_av_drift": {
           "status": "PASS",
@@ -92,15 +92,15 @@
           "p95_drift_ms": 10.665999999999842,
           "max_drift_ms": 10.666999999999982,
           "final_drift_ms": 8.000000000000007,
-          "decode_fps": 418.1978807769347
+          "decode_fps": 226.8855179231328
         }
       }
     }
   },
   "coverage": {
     "rust_core_pct": 95.2,
-    "flutter_ui_pct": 93.27,
-    "unified_pct": 94.23,
+    "flutter_ui_pct": 90.12,
+    "unified_pct": 92.66,
     "gate_threshold_pct": 90.0,
     "gate_passed": true
   },

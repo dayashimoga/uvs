@@ -42,15 +42,15 @@ fi
 
 echo "[OK] Found Flutter Linux Release bundle: ${BUNDLE_DIR}"
 
-# 2. Stage complete package
-STAGING_DIR="${DIST_DIR}/linux_pkg_staging"
+# 2. Stage complete package directory: UVS-Linux-x64
+STAGING_DIR="${DIST_DIR}/UVS-Linux-x64"
 rm -rf "${STAGING_DIR}"
 mkdir -p "${STAGING_DIR}"
 
-echo ">>> Staging canonical application bundle..."
+echo ">>> Staging canonical application bundle into ${STAGING_DIR}..."
 cp -r "${BUNDLE_DIR}/"* "${STAGING_DIR}/"
 
-# Ensure both binary aliases exist
+# Canonical executable naming
 if [ -f "${STAGING_DIR}/universal_video_studio" ] && [ ! -f "${STAGING_DIR}/uvs" ]; then
     cp "${STAGING_DIR}/universal_video_studio" "${STAGING_DIR}/uvs"
 elif [ -f "${STAGING_DIR}/uvs" ] && [ ! -f "${STAGING_DIR}/universal_video_studio" ]; then
@@ -94,13 +94,15 @@ echo ">>> Generating MANIFEST.txt..."
 (cd "${STAGING_DIR}" && find . -type f -exec sha256sum {} + | sort > MANIFEST.txt)
 
 # 5. Compress Archive
-LINUX_PKG="${DIST_DIR}/universal_video_studio_linux_x64.tar.gz"
+LINUX_PKG="${DIST_DIR}/UVS-Linux-x64.tar.gz"
 rm -f "${LINUX_PKG}"
 echo ">>> Compressing archive to ${LINUX_PKG}..."
-tar -czf "${LINUX_PKG}" -C "${DIST_DIR}" linux_pkg_staging
-rm -rf "${STAGING_DIR}"
+tar -czf "${LINUX_PKG}" -C "${DIST_DIR}" UVS-Linux-x64
+cp "${LINUX_PKG}" "${DIST_DIR}/universal_video_studio_linux_x64.tar.gz"
 
-# 6. Validate Archive Size (Legitimate compressed release bundle is ~10 MB; reject truncated archives)
+# Retain ${STAGING_DIR} directory intact for direct GitHub Actions upload!
+
+# 6. Validate Archive Size
 ARCHIVE_SIZE=$(stat -c %s "${LINUX_PKG}" 2>/dev/null || stat -f %z "${LINUX_PKG}")
 echo "[OK] Created: ${LINUX_PKG} ($((ARCHIVE_SIZE / 1048576)) MB)"
 

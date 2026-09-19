@@ -25,6 +25,7 @@ exports/
 *.log
 apps/flutter_app/*.mp4
 apps/flutter_app/exports/
+.*recents.json
 
 # OS artifacts
 .DS_Store

@@ -13,6 +13,7 @@ Write-Host "`n>>> [0/11] Invalidating stale certification and release artifacts.
 Remove-Item -Force "$root\acceptance.json", "$root\acceptance.html" -ErrorAction SilentlyContinue
 Remove-Item -Force "$root\dist\universal_video_studio_windows_x64.zip" -ErrorAction SilentlyContinue
 Remove-Item -Force "$root\dist\universal_video_studio_release.zip" -ErrorAction SilentlyContinue
+Remove-Item -Force "$root\dist\UVS-Windows-x64-Portable.zip" -ErrorAction SilentlyContinue
 Write-Host "[OK] Clean slate confirmed." -ForegroundColor Green
 
 # 1. Rust Code Formatting & Clippy Linter

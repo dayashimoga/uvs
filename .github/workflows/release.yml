@@ -91,21 +91,21 @@ jobs:
 
       - name: Verify APK Integrity & Symbols
         run: |
-          mkdir -p dist
-          cp apps/flutter_app/build/app/outputs/flutter-apk/app-release.apk dist/universal_video_studio_release.apk
-          cp apps/flutter_app/build/app/outputs/bundle/release/app-release.aab dist/universal_video_studio_release.aab
-          unzip -l dist/universal_video_studio_release.apk | grep libuvs_core.so || echo "Native library bundled."
-          cd dist && sha256sum universal_video_studio_release.apk universal_video_studio_release.aab > SHA256SUMS_ANDROID.txt
+          mkdir -p dist/UVS-Android-Release
+          cp apps/flutter_app/build/app/outputs/flutter-apk/app-release.apk dist/UVS-Android-Release/Universal-Video-Studio-release.apk
+          cp apps/flutter_app/build/app/outputs/bundle/release/app-release.aab dist/UVS-Android-Release/Universal-Video-Studio-release.aab
+          unzip -l dist/UVS-Android-Release/Universal-Video-Studio-release.apk | grep libuvs_core.so || echo "Native library bundled."
+          cd dist/UVS-Android-Release && sha256sum Universal-Video-Studio-release.apk Universal-Video-Studio-release.aab > SHA256SUMS.txt
 
       - name: Upload Android Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-release-artifacts
-          path: dist/universal_video_studio_release.*
+          name: UVS-Android-Release
+          path: dist/UVS-Android-Release
 
   # 3. Desktop Release Packaging (Windows, Linux, macOS)
   package-desktop:
-    name: Package Desktop Release
+    name: Package Desktop Release (${{ matrix.platform }})
     needs: verify-quality-gates
     runs-on: ${{ matrix.os }}
     strategy:
@@ -114,13 +114,16 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-            artifact: universal_video_studio_windows_x64.zip
+            artifact_name: UVS-Windows-x64-Portable
+            artifact_path: dist/UVS-Windows-x64-Portable
           - os: ubuntu-latest
             platform: linux
-            artifact: universal_video_studio_linux_x64.tar.gz
+            artifact_name: UVS-Linux-x64
+            artifact_path: dist/UVS-Linux-x64
           - os: macos-latest
             platform: macos
-            artifact: universal_video_studio_macos.zip
+            artifact_name: UVS-macOS
+            artifact_path: dist/UVS-macOS
     steps:
       - uses: actions/checkout@v4
 
@@ -153,23 +156,24 @@ jobs:
           else
             cd core/rust && cargo build --release && cd ../..
             cd apps/flutter_app && flutter build macos --release && cd ../..
-            mkdir -p dist
+            mkdir -p dist/UVS-macOS
             MAC_APP="apps/flutter_app/build/macos/Build/Products/Release/uvs.app"
             if [ -d "$MAC_APP" ]; then
               mkdir -p "$MAC_APP/Contents/Frameworks"
               cp core/rust/target/release/libuvs_core.dylib "$MAC_APP/Contents/Frameworks/" 2>/dev/null || true
-              cd apps/flutter_app/build/macos/Build/Products/Release && zip -r ../../../../../../dist/${{ matrix.artifact }} uvs.app
+              cp -r "$MAC_APP" "dist/UVS-macOS/Universal Video Studio.app"
+              (cd dist && zip -r UVS-macOS.zip UVS-macOS)
             fi
             cd dist
             if command -v sha256sum >/dev/null 2>&1; then
-              sha256sum ${{ matrix.artifact }} > SHA256SUM_macos.txt
+              sha256sum UVS-macOS.zip > SHA256SUM_macos.txt
             else
-              shasum -a 256 ${{ matrix.artifact }} > SHA256SUM_macos.txt
+              shasum -a 256 UVS-macOS.zip > SHA256SUM_macos.txt
             fi
           fi
 
       - name: Upload Desktop Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: dist/${{ matrix.artifact }}
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}

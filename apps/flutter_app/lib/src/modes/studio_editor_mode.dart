@@ -10,7 +10,9 @@ import '../widgets/audio_mixer_view.dart';
 import '../widgets/color_inspector_view.dart';
 import '../services/project_service.dart';
 import '../services/render_service.dart';
+import '../models/track_model.dart';
 import '../widgets/video_monitor_surface.dart';
+import '../widgets/media_bin_view.dart';
 
 class StudioEditorModeView extends StatefulWidget {
   const StudioEditorModeView({super.key});
@@ -25,10 +27,11 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   bool _isPlaying = false;
   Timer? _playbackTimer;
   ClipModel? _selectedClip;
-  int _sidePanelTab = 0; // 0: Inspector, 1: Color, 2: Audio, 3: Subtitles, 4: Render Queue
+  int _sidePanelTab = 0; // 0: Media Bin, 1: Inspector, 2: Color, 3: Audio, 4: Subtitles, 5: Render Queue
+  final List<MediaBinItem> _mediaBinItems = [];
 
   final List<Map<String, String>> _subtitleCues = [
-    {"in": "00:00:00:15", "out": "00:00:02:00", "text": "Universal Video Studio - Production Ready"},
+    {"in": "00:00:00:15", "out": "00:00:02:00", "text": "Universal Video Studio Title Cue 1"},
     {"in": "00:00:02:05", "out": "00:00:04:00", "text": "High Performance Non-Destructive Video NLE"},
   ];
 
@@ -36,7 +39,19 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   void initState() {
     super.initState();
     _project = ProjectModel.createDefault();
-    _selectedClip = _project.tracks.first.clips.first;
+    if (_project.tracks.isNotEmpty && _project.tracks.first.clips.isNotEmpty) {
+      _selectedClip = _project.tracks.first.clips.first;
+      _mediaBinItems.add(MediaBinItem(
+        id: 'bin-default-01',
+        path: _selectedClip!.mediaPath,
+        name: _selectedClip!.name,
+        duration: _selectedClip!.duration,
+        width: 1920,
+        height: 1080,
+        fps: 30.0,
+        channels: 2,
+      ));
+    }
   }
 
   @override
@@ -115,6 +130,36 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
         const SnackBar(content: Text("Clip ripple deleted")),
       );
     }
+  }
+
+  void _addMediaBinItemToTimeline(MediaBinItem item) {
+    setState(() {
+      final vTrack = _project.tracks.firstWhere(
+        (t) => t.trackType == TrackType.video,
+        orElse: () => _project.tracks.first,
+      );
+      final newClip = ClipModel(
+        id: 'clip-${DateTime.now().millisecondsSinceEpoch}',
+        name: item.name,
+        mediaPath: item.path,
+        startTime: _playheadTime,
+        duration: item.duration > 0 ? item.duration : 4.0,
+      );
+      vTrack.clips.add(newClip);
+      vTrack.clips.sort((a, b) => a.startTime.compareTo(b.startTime));
+      _selectedClip = newClip;
+
+      ProjectService.instance.addClip(
+        vTrack.id,
+        newClip.name,
+        newClip.mediaPath,
+        newClip.startTime,
+        newClip.duration,
+      );
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Added '${item.name}' to Timeline at ${TimecodeHelper.formatDurationSeconds(_playheadTime)}")),
+    );
   }
 
   void _openExportDialog() {
@@ -205,7 +250,7 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
                 inputPath: inputMedia,
               );
               setState(() {
-                _sidePanelTab = 4; // Switch to Render Queue tab
+                _sidePanelTab = 5; // Switch to Render Queue tab
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text("Queued render to $outPath")),
@@ -472,11 +517,12 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  SizedBox(width: 68, child: _buildTabButton(0, "Inspector", Icons.tune)),
-                  SizedBox(width: 68, child: _buildTabButton(1, "Color", Icons.palette)),
-                  SizedBox(width: 68, child: _buildTabButton(2, "Audio", Icons.equalizer)),
-                  SizedBox(width: 68, child: _buildTabButton(3, "Subtitles", Icons.subtitles)),
-                  SizedBox(width: 68, child: _buildTabButton(4, "Queue", Icons.queue)),
+                  SizedBox(width: 56, child: _buildTabButton(0, "Media", Icons.video_library)),
+                  SizedBox(width: 58, child: _buildTabButton(1, "Inspector", Icons.tune)),
+                  SizedBox(width: 54, child: _buildTabButton(2, "Color", Icons.palette)),
+                  SizedBox(width: 54, child: _buildTabButton(3, "Audio", Icons.equalizer)),
+                  SizedBox(width: 56, child: _buildTabButton(4, "Subtitles", Icons.subtitles)),
+                  SizedBox(width: 54, child: _buildTabButton(5, "Queue", Icons.queue)),
                 ],
               ),
             ),
@@ -514,14 +560,28 @@ class _StudioEditorModeViewState extends State<StudioEditorModeView> {
   Widget _buildSidePanelContent() {
     switch (_sidePanelTab) {
       case 0:
-        return _buildClipInspector();
+        return MediaBinView(
+          items: _mediaBinItems,
+          onItemsChanged: (items) => setState(() {
+            _mediaBinItems.clear();
+            _mediaBinItems.addAll(items);
+          }),
+          onSelectPreview: (item) {
+            setState(() {
+              _playheadTime = 0.0;
+            });
+          },
+          onAddToTimeline: _addMediaBinItemToTimeline,
+        );
       case 1:
-        return const ColorInspectorView();
+        return _buildClipInspector();
       case 2:
-        return AudioMixerView(project: _project);
+        return const ColorInspectorView();
       case 3:
-        return _buildSubtitleEditor();
+        return AudioMixerView(project: _project);
       case 4:
+        return _buildSubtitleEditor();
+      case 5:
         return _buildRenderQueue();
       default:
         return _buildClipInspector();

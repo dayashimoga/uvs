@@ -121,21 +121,6 @@ class _MainStudioShellState extends State<MainStudioShell> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (!isMobile) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: StudioTheme.accentEmerald.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: StudioTheme.accentEmerald.withOpacity(0.5)),
-                ),
-                child: const Text(
-                  "PROD v0.1.0",
-                  style: TextStyle(color: StudioTheme.accentEmerald, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
           ],
         ),
         actions: [

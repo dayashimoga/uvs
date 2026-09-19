@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../core/ffi_bridge.dart';
+import 'platform_file_picker.dart';
+import 'recent_media_service.dart';
 
 class MediaProbeResult {
   final String path;
@@ -11,6 +13,7 @@ class MediaProbeResult {
   final int audioChannels;
   final int sampleRate;
   final String? proxyPath;
+  final String? thumbnailPath;
 
   const MediaProbeResult({
     required this.path,
@@ -21,7 +24,16 @@ class MediaProbeResult {
     required this.audioChannels,
     required this.sampleRate,
     this.proxyPath,
+    this.thumbnailPath,
   });
+
+  String get fileName {
+    final norm = path.replaceAll('\\', '/');
+    return norm.split('/').last;
+  }
+
+  String get resolutionString => '${width}x$height';
+  String get fpsString => '${fps.toStringAsFixed(fps.truncateToDouble() == fps ? 0 : 2)} fps';
 }
 
 class MediaService extends ChangeNotifier {
@@ -33,6 +45,79 @@ class MediaService extends ChangeNotifier {
   final Map<String, String> _frameCache = {};
 
   MediaService._();
+
+  /// Resolves fixture paths across both root execution and apps/flutter_app test runners
+  static String? resolveFixture(String relPath) {
+    if (File(relPath).existsSync()) return relPath;
+    final twoUp = '../../$relPath';
+    if (File(twoUp).existsSync()) return twoUp;
+    final oneUp = '../$relPath';
+    if (File(oneUp).existsSync()) return oneUp;
+    return null;
+  }
+
+  /// Strictly validates file existence on disk, probes metadata via native engine,
+  /// extracts initial preview frame, registers into recent media, and caches result.
+  /// Throws [FileSystemException] or [ArgumentError] if file does not exist.
+  MediaProbeResult validateAndIngestMedia(String rawPath) {
+    final cleanPath = rawPath.trim().replaceAll('"', '');
+    if (cleanPath.isEmpty) {
+      throw ArgumentError('Media path cannot be empty.');
+    }
+
+    final file = File(cleanPath);
+    if (!file.existsSync()) {
+      throw FileSystemException('Media file does not exist on disk', cleanPath);
+    }
+
+    final canonicalPath = file.resolveSymbolicLinksSync();
+    final probe = probeMedia(canonicalPath);
+
+    // Pre-extract frame 0.0 for instant thumbnail rendering
+    try {
+      final thumb = extractFrame(canonicalPath, 0.0);
+      RecentMediaService.instance.addRecentMedia(canonicalPath);
+      final enriched = MediaProbeResult(
+        path: probe.path,
+        durationSeconds: probe.durationSeconds,
+        width: probe.width,
+        height: probe.height,
+        fps: probe.fps,
+        audioChannels: probe.audioChannels,
+        sampleRate: probe.sampleRate,
+        proxyPath: probe.proxyPath,
+        thumbnailPath: thumb,
+      );
+      _cache[canonicalPath] = enriched;
+      notifyListeners();
+      return enriched;
+    } catch (_) {
+      RecentMediaService.instance.addRecentMedia(canonicalPath);
+      return probe;
+    }
+  }
+
+  /// Interactively pick media files using the native platform dialog and ingest each.
+  Future<List<MediaProbeResult>> pickAndIngestMedia({
+    bool allowMultiple = true,
+    String dialogTitle = "Open Media File",
+  }) async {
+    final paths = await PlatformFilePicker.pickMediaFiles(
+      allowMultiple: allowMultiple,
+      dialogTitle: dialogTitle,
+    );
+
+    final results = <MediaProbeResult>[];
+    for (final p in paths) {
+      try {
+        final res = validateAndIngestMedia(p);
+        results.add(res);
+      } catch (e) {
+        debugPrint("Failed to ingest picked media $p: $e");
+      }
+    }
+    return results;
+  }
 
   MediaProbeResult probeMedia(String path) {
     if (_cache.containsKey(path)) {
@@ -119,5 +204,12 @@ class MediaService extends ChangeNotifier {
       _frameCache[key] = outPath;
     }
     return outPath;
+  }
+
+  void clearCache() {
+    _cache.clear();
+    _waveformCache.clear();
+    _frameCache.clear();
+    notifyListeners();
   }
 }

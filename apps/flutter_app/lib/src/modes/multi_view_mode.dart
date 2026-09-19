@@ -3,9 +3,12 @@ import '../core/theme.dart';
 import '../services/project_service.dart';
 import '../widgets/video_monitor_surface.dart';
 
+import '../services/platform_file_picker.dart';
+
 class TileFeed {
   final int id;
-  final String title;
+  String title;
+  String? mediaPath;
   bool isPlaying;
   bool isMuted;
   double volume;
@@ -15,6 +18,7 @@ class TileFeed {
   TileFeed({
     required this.id,
     required this.title,
+    this.mediaPath,
     this.isPlaying = true,
     this.isMuted = false,
     this.volume = 0.8,
@@ -185,7 +189,7 @@ class _MultiViewModeViewState extends State<MultiViewModeView> {
           if (!feed.hasError)
             Positioned.fill(
               child: VideoMonitorSurface(
-                mediaPath: 'feed_${feed.id}.mp4',
+                mediaPath: feed.mediaPath,
                 currentTime: (feed.id - 1) * 2.0,
                 duration: 60.0,
                 isPlaying: feed.isPlaying,
@@ -247,6 +251,23 @@ class _MultiViewModeViewState extends State<MultiViewModeView> {
                 ),
                 Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.drive_file_move_outline, size: 14, color: Colors.white70),
+                      tooltip: "Replace Feed Media",
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () async {
+                        final picked = await PlatformFilePicker.pickMediaFiles(allowMultiple: false);
+                        if (picked.isNotEmpty) {
+                          setState(() {
+                            feed.mediaPath = picked.first;
+                            feed.title = picked.first.replaceAll('\\', '/').split('/').last;
+                            feed.hasError = false;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 4),
                     IconButton(
                       icon: Icon(Icons.bug_report, size: 14, color: StudioTheme.textMuted.withOpacity(0.7)),
                       tooltip: "Simulate Connection Drop / Recovery",

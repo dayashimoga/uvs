@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../services/media_service.dart';
+import '../services/platform_file_picker.dart';
 
 class VideoMonitorSurface extends StatefulWidget {
   final String? mediaPath;
@@ -10,6 +11,7 @@ class VideoMonitorSurface extends StatefulWidget {
   final bool isPlaying;
   final Widget? overlay;
   final BoxFit fit;
+  final ValueChanged<String>? onRelink;
 
   const VideoMonitorSurface({
     super.key,
@@ -19,6 +21,7 @@ class VideoMonitorSurface extends StatefulWidget {
     this.isPlaying = false,
     this.overlay,
     this.fit = BoxFit.contain,
+    this.onRelink,
   });
 
   @override
@@ -153,7 +156,20 @@ class _VideoMonitorSurfaceState extends State<VideoMonitorSurface> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   side: const BorderSide(color: StudioTheme.accentRed, width: 1),
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  if (widget.onRelink != null) {
+                    try {
+                      final picked = await PlatformFilePicker.pickMediaFiles(
+                        allowMultiple: false,
+                        dialogTitle: "Relink Missing Media: ${widget.mediaPath?.split('/').last}",
+                      );
+                      if (picked.isNotEmpty) {
+                        widget.onRelink!(picked.first);
+                        return;
+                      }
+                    } catch (_) {}
+                  }
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text("Relinking search initiated for: ${widget.mediaPath}"),

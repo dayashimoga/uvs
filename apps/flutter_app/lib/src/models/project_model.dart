@@ -1,3 +1,4 @@
+import '../services/media_service.dart';
 import 'track_model.dart';
 import 'clip_model.dart';
 
@@ -42,22 +43,25 @@ class ProjectModel {
     final a1 = TrackModel(id: 'track-a1', name: 'A1 - Audio', trackType: TrackType.audio, zIndex: 1);
     final sub = TrackModel(id: 'track-sub', name: 'Subtitles', trackType: TrackType.subtitle, zIndex: 2);
 
-    // Add initial working clip
-    v1.clips.add(ClipModel(
-      id: 'clip-01',
-      name: 'SMPTE HD Master',
-      mediaPath: 'media/fixtures/test_smpte_1080p.mp4',
-      startTime: 0.0,
-      duration: 4.0,
-    ));
+    // Add initial working clip only if fixture exists on disk (dev/test environments)
+    final fixture = MediaService.resolveFixture('media/fixtures/test_smpte_1080p.mp4');
+    if (fixture != null) {
+      v1.clips.add(ClipModel(
+        id: 'clip-01',
+        name: 'SMPTE HD Master',
+        mediaPath: fixture,
+        startTime: 0.0,
+        duration: 4.0,
+      ));
 
-    a1.clips.add(ClipModel(
-      id: 'clip-a01',
-      name: '1kHz Reference Tone',
-      mediaPath: 'media/fixtures/test_smpte_1080p.mp4',
-      startTime: 0.0,
-      duration: 4.0,
-    ));
+      a1.clips.add(ClipModel(
+        id: 'clip-a01',
+        name: '1kHz Reference Tone',
+        mediaPath: fixture,
+        startTime: 0.0,
+        duration: 4.0,
+      ));
+    }
 
     proj.tracks.addAll([v1, a1, sub]);
     return proj;

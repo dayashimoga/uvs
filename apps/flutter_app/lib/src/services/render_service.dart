@@ -231,6 +231,17 @@ class RenderService extends ChangeNotifier {
 
   void clearCompleted() {
     _jobs.removeWhere((j) => j.status == RenderStatus.completed || j.status == RenderStatus.cancelled);
+    if (_jobs.isEmpty) {
+      _isRendering = false;
+    }
+    notifyListeners();
+  }
+
+  void resetForTesting() {
+    _activeProcess?.kill();
+    _activeProcess = null;
+    _isRendering = false;
+    _jobs.clear();
     notifyListeners();
   }
 }
