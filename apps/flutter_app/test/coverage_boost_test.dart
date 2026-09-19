@@ -1713,12 +1713,12 @@ void main() {
       // Step forward & backward
       final nextBtn = find.byIcon(Icons.skip_next);
       if (nextBtn.evaluate().isNotEmpty) {
-        await tester.tap(nextBtn);
+        await tester.tap(nextBtn, warnIfMissed: false);
         await tester.pumpAndSettle();
       }
       final prevBtn = find.byIcon(Icons.skip_previous);
       if (prevBtn.evaluate().isNotEmpty) {
-        await tester.tap(prevBtn);
+        await tester.tap(prevBtn, warnIfMissed: false);
         await tester.pumpAndSettle();
       }
 
@@ -1935,12 +1935,17 @@ void main() {
 
       // High-level pickMediaFiles, pickProjectFile, pickFolder with mockProcessRunner
       PlatformFilePicker.mockProcessRunner = (exe, args) async {
-        if (args.any((a) => a.contains('OpenFileDialog'))) {
-          return ProcessResult(15, 0, '${f1.path}\n', '');
-        } else if (args.any((a) => a.contains('FolderBrowserDialog'))) {
-          return ProcessResult(16, 0, '${tempDir.path}\n', '');
+        final isFolder = args.any((a) =>
+            a.contains('FolderBrowserDialog') ||
+            a == '--directory' ||
+            a.contains('choose folder'));
+        if (isFolder) {
+          return ProcessResult(16, 0, tempDir.path, '');
         }
-        return ProcessResult(17, 0, '${f1.path}\n', '');
+        if (exe == 'osascript' && args.any((a) => a.contains('POSIX path'))) {
+          return ProcessResult(17, 0, f1.path, '');
+        }
+        return ProcessResult(15, 0, f1.path, '');
       };
 
       final autoMedia = await PlatformFilePicker.pickMediaFiles(allowMultiple: true);
