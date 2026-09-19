@@ -14,22 +14,26 @@ echo "=================================================================="
 
 # 1. Locate Flutter Linux Release Bundle
 BUNDLE_DIR=""
-if [ -d "${ROOT_DIR}/apps/flutter_app/build/linux/x64/release/bundle" ] && [ -f "${ROOT_DIR}/apps/flutter_app/build/linux/x64/release/bundle/uvs" ]; then
-    BUNDLE_DIR="${ROOT_DIR}/apps/flutter_app/build/linux/x64/release/bundle"
-elif [ -d "${ROOT_DIR}/apps/flutter_app/build/linux/release/bundle" ] && [ -f "${ROOT_DIR}/apps/flutter_app/build/linux/release/bundle/uvs" ]; then
-    BUNDLE_DIR="${ROOT_DIR}/apps/flutter_app/build/linux/release/bundle"
-fi
+for cand in "${ROOT_DIR}/apps/flutter_app/build/linux/x64/release/bundle" "${ROOT_DIR}/apps/flutter_app/build/linux/release/bundle"; do
+    if [ -d "${cand}" ] && ([ -f "${cand}/uvs" ] || [ -f "${cand}/universal_video_studio" ]); then
+        BUNDLE_DIR="${cand}"
+        break
+    fi
+done
 
 if [ -z "${BUNDLE_DIR}" ]; then
     echo ">>> Flutter Linux release bundle not found. Attempting build..."
     (cd "${ROOT_DIR}/apps/flutter_app" && flutter build linux --release) || true
-    if [ -d "${ROOT_DIR}/apps/flutter_app/build/linux/x64/release/bundle" ] && [ -f "${ROOT_DIR}/apps/flutter_app/build/linux/x64/release/bundle/uvs" ]; then
-        BUNDLE_DIR="${ROOT_DIR}/apps/flutter_app/build/linux/x64/release/bundle"
-    fi
+    for cand in "${ROOT_DIR}/apps/flutter_app/build/linux/x64/release/bundle" "${ROOT_DIR}/apps/flutter_app/build/linux/release/bundle"; do
+        if [ -d "${cand}" ] && ([ -f "${cand}/uvs" ] || [ -f "${cand}/universal_video_studio" ]); then
+            BUNDLE_DIR="${cand}"
+            break
+        fi
+    done
 fi
 
-if [ -z "${BUNDLE_DIR}" ] || [ ! -f "${BUNDLE_DIR}/uvs" ]; then
-    echo -e "\n[FAIL / HARDWARE-REQUIRED] Canonical Linux Flutter executable (uvs) not found."
+if [ -z "${BUNDLE_DIR}" ] || ([ ! -f "${BUNDLE_DIR}/uvs" ] && [ ! -f "${BUNDLE_DIR}/universal_video_studio" ]); then
+    echo -e "\n[FAIL / HARDWARE-REQUIRED] Canonical Linux Flutter executable (uvs / universal_video_studio) not found."
     echo "Linux desktop Flutter development requires clang, cmake, ninja, and GTK3 libraries."
     echo "This step compiles and packages automatically on GitHub Actions 'ubuntu-latest' runner."
     echo "Refusing to create a fake or truncated archive."
@@ -45,6 +49,13 @@ mkdir -p "${STAGING_DIR}"
 
 echo ">>> Staging canonical application bundle..."
 cp -r "${BUNDLE_DIR}/"* "${STAGING_DIR}/"
+
+# Ensure both binary aliases exist
+if [ -f "${STAGING_DIR}/universal_video_studio" ] && [ ! -f "${STAGING_DIR}/uvs" ]; then
+    cp "${STAGING_DIR}/universal_video_studio" "${STAGING_DIR}/uvs"
+elif [ -f "${STAGING_DIR}/uvs" ] && [ ! -f "${STAGING_DIR}/universal_video_studio" ]; then
+    cp "${STAGING_DIR}/uvs" "${STAGING_DIR}/universal_video_studio"
+fi
 
 # Copy Rust native core engine
 mkdir -p "${STAGING_DIR}/lib"

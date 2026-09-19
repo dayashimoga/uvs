@@ -17,7 +17,7 @@ $winBuildCandidates = @(
 
 $winReleaseDir = $null
 foreach ($cand in $winBuildCandidates) {
-    if (Test-Path "$cand\uvs.exe") {
+    if ((Test-Path "$cand\universal_video_studio.exe") -or (Test-Path "$cand\uvs.exe")) {
         $winReleaseDir = $cand
         break
     }
@@ -30,14 +30,17 @@ if (-not $winReleaseDir) {
         $flutterBin = "C:\flutter\bin\flutter.bat"
     }
 
+    Push-Location "$root\apps\flutter_app"
     try {
         & $flutterBin build windows --release
     } catch {
         Write-Host "[WARN] 'flutter build windows --release' encountered an error." -ForegroundColor Yellow
+    } finally {
+        Pop-Location
     }
 
     foreach ($cand in $winBuildCandidates) {
-        if (Test-Path "$cand\uvs.exe") {
+        if ((Test-Path "$cand\universal_video_studio.exe") -or (Test-Path "$cand\uvs.exe")) {
             $winReleaseDir = $cand
             break
         }
@@ -45,7 +48,7 @@ if (-not $winReleaseDir) {
 }
 
 if (-not $winReleaseDir) {
-    Write-Host "`n[FAIL / HARDWARE-REQUIRED] Flutter Windows Release executable (uvs.exe) was not found." -ForegroundColor Red
+    Write-Host "`n[FAIL / HARDWARE-REQUIRED] Flutter Windows Release executable (universal_video_studio.exe or uvs.exe) was not found." -ForegroundColor Red
     Write-Host "Visual Studio C++ Desktop Development Workload is required to compile Windows desktop Flutter runners." -ForegroundColor Red
     Write-Host "This step compiles and packages automatically on GitHub Actions 'windows-latest' runner." -ForegroundColor Yellow
     Write-Host "Refusing to create a fake, incomplete 841 KB ZIP." -ForegroundColor Red
@@ -62,6 +65,13 @@ New-Item -ItemType Directory -Force -Path $tempWin | Out-Null
 Write-Host ">>> Staging canonical application files..." -ForegroundColor Cyan
 # Copy all Flutter release files
 Copy-Item -Recurse -Path "$winReleaseDir\*" -Destination $tempWin
+
+# Ensure both binary aliases exist in the package
+if ((Test-Path "$tempWin\universal_video_studio.exe") -and (-not (Test-Path "$tempWin\uvs.exe"))) {
+    Copy-Item "$tempWin\universal_video_studio.exe" -Destination "$tempWin\uvs.exe" -Force
+} elseif ((Test-Path "$tempWin\uvs.exe") -and (-not (Test-Path "$tempWin\universal_video_studio.exe"))) {
+    Copy-Item "$tempWin\uvs.exe" -Destination "$tempWin\universal_video_studio.exe" -Force
+}
 
 # Copy Rust native engine
 $rustDll = "$root\core\rust\target\release\uvs_core.dll"
@@ -91,7 +101,13 @@ if (Test-Path "$root\LICENSE") {
 }
 
 # 3. Audit required components
-$mandatoryFiles = @("uvs.exe", "flutter_windows.dll", "uvs_core.dll", "data")
+if ((-not (Test-Path "$tempWin\uvs.exe")) -and (-not (Test-Path "$tempWin\universal_video_studio.exe"))) {
+    Write-Host "[FATAL] Mandatory release executable (universal_video_studio.exe / uvs.exe) is missing!" -ForegroundColor Red
+    Remove-Item -Recurse -Force $tempWin
+    exit 1
+}
+
+$mandatoryFiles = @("flutter_windows.dll", "uvs_core.dll", "data")
 foreach ($req in $mandatoryFiles) {
     if (-not (Test-Path "$tempWin\$req")) {
         Write-Host "[FATAL] Mandatory release component missing: $req" -ForegroundColor Red
