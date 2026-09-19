@@ -100,12 +100,12 @@ echo ">>> Compressing archive to ${LINUX_PKG}..."
 tar -czf "${LINUX_PKG}" -C "${DIST_DIR}" linux_pkg_staging
 rm -rf "${STAGING_DIR}"
 
-# 6. Validate Archive Size
+# 6. Validate Archive Size (Legitimate compressed release bundle is ~10 MB; reject truncated archives)
 ARCHIVE_SIZE=$(stat -c %s "${LINUX_PKG}" 2>/dev/null || stat -f %z "${LINUX_PKG}")
 echo "[OK] Created: ${LINUX_PKG} ($((ARCHIVE_SIZE / 1048576)) MB)"
 
-if [ "${ARCHIVE_SIZE}" -lt 15000000 ]; then
-    echo "[FATAL] Archive size is suspicious (${ARCHIVE_SIZE} bytes < 15 MB). Packaging rejected!"
+if [ "${ARCHIVE_SIZE}" -lt 8000000 ]; then
+    echo "[FATAL] Archive size is suspicious (${ARCHIVE_SIZE} bytes < 8 MB). Packaging rejected!"
     exit 1
 fi
 

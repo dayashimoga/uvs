@@ -143,8 +143,8 @@ Remove-Item -Recurse -Force $tempWin
 $zipSize = (Get-Item $winDist).Length
 Write-Host "Created: $winDist ($([math]::Round($zipSize / 1MB, 2)) MB)" -ForegroundColor Green
 
-if ($zipSize -lt 15000000) { # Less than 15 MB is suspicious for a Flutter Windows release app
-    Write-Host "[FATAL] Archive size is suspicious ($zipSize bytes < 15 MB). Packaging rejected!" -ForegroundColor Red
+if ($zipSize -lt 10000000) { # Less than 10 MB is suspicious (fake archives were ~841 KB)
+    Write-Host "[FATAL] Archive size is suspicious ($zipSize bytes < 10 MB). Packaging rejected!" -ForegroundColor Red
     exit 1
 }
 
